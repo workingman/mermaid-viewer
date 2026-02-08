@@ -39,3 +39,36 @@ export interface MergedGraph {
   edges: ParsedEdge[];
   diagramType: string;
 }
+
+// ELK input types
+
+export type ELKLayoutOptions = Record<string, string>;
+
+export interface ELKLabel {
+  text: string;
+  width?: number;
+  height?: number;
+}
+
+export interface ELKNode {
+  id: string;
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+  layoutOptions?: { 'elk.position'?: string };
+}
+
+export interface ELKEdge {
+  id: string;
+  sources: [string];
+  targets: [string];
+  labels?: ELKLabel[];
+}
+
+export interface ELKInputGraph {
+  id: 'root';
+  layoutOptions: ELKLayoutOptions;
+  children: ELKNode[];
+  edges: ELKEdge[];
+}
