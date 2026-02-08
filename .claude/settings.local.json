@@ -16,13 +16,7 @@
       "WebFetch(domain:www.thoughtworks.com)",
       "WebFetch(domain:ghuntley.com)",
       "Bash(bash run.sh:*)",
-      "Bash(git status:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(git push:*)",
-      "Bash(git -C /Users/sam/dev/mmv:*)",
+      "Bash(git:*)",
       "Bash(gh repo:*)",
       "Bash(gh auth:*)",
       "Bash(gh issue:*)",
@@ -31,33 +25,7 @@
       "Bash(pnpm:*)",
       "Bash(npx:*)",
       "Bash(cargo:*)",
-      "Skill(wrap)",
-      "Bash(git:*)"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/enforce-run-sh.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/log-subagent-stats.sh",
-            "timeout": 30
-          }
-        ]
-      }
+      "Skill(wrap)"
     ]
   }
 }
