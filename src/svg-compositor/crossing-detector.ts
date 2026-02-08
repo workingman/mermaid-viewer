@@ -32,10 +32,7 @@ function buildPointList(section: {
   return points;
 }
 
-function findIntersection(
-  a: Segment,
-  b: Segment,
-): Point | null {
+function findIntersection(a: Segment, b: Segment): Point | null {
   const denom = computeDenom(a, b);
   if (Math.abs(denom) < EPSILON) return null;
 
@@ -52,31 +49,18 @@ function findIntersection(
 }
 
 function computeDenom(a: Segment, b: Segment): number {
-  return (
-    (a.p1.x - a.p2.x) * (b.p1.y - b.p2.y) -
-    (a.p1.y - a.p2.y) * (b.p1.x - b.p2.x)
-  );
+  return (a.p1.x - a.p2.x) * (b.p1.y - b.p2.y) - (a.p1.y - a.p2.y) * (b.p1.x - b.p2.x);
 }
 
 function computeT(a: Segment, b: Segment, denom: number): number {
-  return (
-    ((a.p1.x - b.p1.x) * (b.p1.y - b.p2.y) -
-      (a.p1.y - b.p1.y) * (b.p1.x - b.p2.x)) /
-    denom
-  );
+  return ((a.p1.x - b.p1.x) * (b.p1.y - b.p2.y) - (a.p1.y - b.p1.y) * (b.p1.x - b.p2.x)) / denom;
 }
 
 function computeU(a: Segment, b: Segment, denom: number): number {
-  return (
-    ((a.p1.x - b.p1.x) * (a.p1.y - a.p2.y) -
-      (a.p1.y - b.p1.y) * (a.p1.x - a.p2.x)) /
-    denom
-  );
+  return ((a.p1.x - b.p1.x) * (a.p1.y - a.p2.y) - (a.p1.y - b.p1.y) * (a.p1.x - a.p2.x)) / denom;
 }
 
-export function computeEdgeCrossings(
-  routedEdges: RoutedEdge[],
-): EdgeCrossing[] {
+export function computeEdgeCrossings(routedEdges: RoutedEdge[]): EdgeCrossing[] {
   const crossings: EdgeCrossing[] = [];
   const edgeSegments = routedEdges.map(extractSegments);
 
@@ -88,11 +72,7 @@ export function computeEdgeCrossings(
   return crossings;
 }
 
-function collectPairCrossings(
-  segsA: Segment[],
-  segsB: Segment[],
-  crossings: EdgeCrossing[],
-): void {
+function collectPairCrossings(segsA: Segment[], segsB: Segment[], crossings: EdgeCrossing[]): void {
   for (const a of segsA) {
     for (const b of segsB) {
       const pt = findIntersection(a, b);

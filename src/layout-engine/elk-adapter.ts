@@ -29,11 +29,7 @@ function toElkNode(node: MergedNode): ELKNode {
   return elkNode;
 }
 
-function applyHints(
-  elkNode: ELKNode,
-  hintX: number,
-  hintY: number,
-): ELKNode {
+function applyHints(elkNode: ELKNode, hintX: number, hintY: number): ELKNode {
   return {
     ...elkNode,
     x: hintX,

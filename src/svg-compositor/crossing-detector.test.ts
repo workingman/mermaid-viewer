@@ -36,11 +36,13 @@ describe('computeEdgeCrossings', () => {
 
   it('detects multiple crossings from multi-segment edges', () => {
     const edges: RoutedEdge[] = [
-      makeEdge('e1', [{
-        startPoint: { x: 0, y: 0 },
-        endPoint: { x: 20, y: 0 },
-        bendPoints: [{ x: 10, y: 10 }],
-      }]),
+      makeEdge('e1', [
+        {
+          startPoint: { x: 0, y: 0 },
+          endPoint: { x: 20, y: 0 },
+          bendPoints: [{ x: 10, y: 10 }],
+        },
+      ]),
       makeEdge('e2', [{ startPoint: { x: 2, y: 5 }, endPoint: { x: 18, y: 5 } }]),
     ];
     const crossings = computeEdgeCrossings(edges);

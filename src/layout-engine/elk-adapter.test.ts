@@ -29,9 +29,14 @@ describe('toElkGraph', () => {
     const graph = makeGraph({
       nodes: [
         {
-          id: 'A', label: 'A', shape: 'rect',
-          width: 100, height: 50, svgFragment: '',
-          hintX: 10, hintY: 20,
+          id: 'A',
+          label: 'A',
+          shape: 'rect',
+          width: 100,
+          height: 50,
+          svgFragment: '',
+          hintX: 10,
+          hintY: 20,
         },
       ],
     });
@@ -44,9 +49,7 @@ describe('toElkGraph', () => {
 
   it('does not set hints on unhinted nodes', () => {
     const graph = makeGraph({
-      nodes: [
-        { id: 'A', label: 'A', shape: 'rect', width: 60, height: 40, svgFragment: '' },
-      ],
+      nodes: [{ id: 'A', label: 'A', shape: 'rect', width: 60, height: 40, svgFragment: '' }],
     });
     const elk = toElkGraph(graph);
     expect(elk.children[0].x).toBeUndefined();
@@ -55,10 +58,16 @@ describe('toElkGraph', () => {
 
   it('maps edges with labels', () => {
     const graph = makeGraph({
-      edges: [{
-        id: 'e1', sourceId: 'A', targetId: 'B',
-        label: 'yes', arrowType: 'arrow_point', lineStyle: 'solid',
-      }],
+      edges: [
+        {
+          id: 'e1',
+          sourceId: 'A',
+          targetId: 'B',
+          label: 'yes',
+          arrowType: 'arrow_point',
+          lineStyle: 'solid',
+        },
+      ],
     });
     const elk = toElkGraph(graph);
     expect(elk.edges).toHaveLength(1);
@@ -68,10 +77,16 @@ describe('toElkGraph', () => {
 
   it('omits labels when edge label is null', () => {
     const graph = makeGraph({
-      edges: [{
-        id: 'e1', sourceId: 'A', targetId: 'B',
-        label: null, arrowType: 'arrow_point', lineStyle: 'solid',
-      }],
+      edges: [
+        {
+          id: 'e1',
+          sourceId: 'A',
+          targetId: 'B',
+          label: null,
+          arrowType: 'arrow_point',
+          lineStyle: 'solid',
+        },
+      ],
     });
     const elk = toElkGraph(graph);
     expect(elk.edges[0].labels).toBeUndefined();
