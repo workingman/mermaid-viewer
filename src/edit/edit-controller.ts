@@ -80,3 +80,7 @@ export function handlePointerUp(event: PointerEvent): void {
   if (!editing || !isDragging()) return;
   handleNodeDragEnd(event);
 }
+
+export function canModifyEdges(): boolean {
+  return !editing;
+}

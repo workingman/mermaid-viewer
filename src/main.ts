@@ -5,6 +5,7 @@ import { parse } from '@mermaid-parser/mermaid-parser';
 import { loadSidecar, mergeSidecarIntoGraph } from '@sidecar/sidecar-manager';
 import { computeLayout } from '@layout-engine/layout-engine';
 import { compose } from '@svg-compositor/svg-compositor';
+import { isWriteLocked } from '@edit/write-lock';
 import type { ParsedGraph, ParsedEdge, SidecarData } from '@shared/types';
 
 document.title = 'Mermaid Viewer';
@@ -67,6 +68,7 @@ async function handleMmdChange(path: string): Promise<void> {
 }
 
 async function handleSidecarChange(path: string): Promise<void> {
+  if (isWriteLocked(path)) return;
   try {
     const content = await invoke<string>('read_file', { path });
     state.sidecar = loadSidecar(content);

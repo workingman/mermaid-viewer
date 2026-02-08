@@ -5,6 +5,7 @@ import {
   isEditing,
   isEditingEnabled,
   handleKeyDown,
+  canModifyEdges,
 } from './edit-controller';
 
 function mockContainer(): HTMLElement {
@@ -91,5 +92,20 @@ describe('handleKeyDown (Cmd+E)', () => {
   it('ignores Cmd+E for non-editable diagram type', () => {
     handleKeyDown(makeKeyEvent('e', true), container, 'sequenceDiagram');
     expect(isEditing()).toBe(false);
+  });
+});
+
+describe('canModifyEdges', () => {
+  beforeEach(() => {
+    if (isEditing()) exitEditMode();
+  });
+
+  it('returns true when not in edit mode', () => {
+    expect(canModifyEdges()).toBe(true);
+  });
+
+  it('returns false when in edit mode', () => {
+    enterEditMode(mockContainer());
+    expect(canModifyEdges()).toBe(false);
   });
 });
