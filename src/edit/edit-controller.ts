@@ -1,4 +1,5 @@
 import { isGraphDiagram } from '@shared/constants';
+import { handleNodeDragStart, handleNodeDrag, handleNodeDragEnd, isDragging } from './drag-handler';
 
 export const EDITABLE_DIAGRAM_TYPES = [
   'flowchart',
@@ -50,4 +51,32 @@ export function handleKeyDown(
     event.preventDefault();
     toggleEditMode(container, diagramType);
   }
+}
+
+function findNodeGroup(target: EventTarget | null): Element | null {
+  let el = target as Element | null;
+  while (el) {
+    if (el.closest?.('.node-layer > g')) return el.closest('.node-layer > g');
+    el = el.parentElement;
+  }
+  return null;
+}
+
+export function handlePointerDown(event: PointerEvent): void {
+  if (!editing) return;
+  const nodeGroup = findNodeGroup(event.target);
+  if (!nodeGroup) return;
+  const nodeId = nodeGroup.getAttribute('data-node-id');
+  if (!nodeId) return;
+  handleNodeDragStart(nodeId, event);
+}
+
+export function handlePointerMove(event: PointerEvent): void {
+  if (!editing || !isDragging()) return;
+  handleNodeDrag(event);
+}
+
+export function handlePointerUp(event: PointerEvent): void {
+  if (!editing || !isDragging()) return;
+  handleNodeDragEnd(event);
 }

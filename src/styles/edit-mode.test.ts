@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+// @ts-expect-error -- node fs not in browser tsconfig; test-only
+import fs from 'fs';
+// @ts-expect-error -- node path not in browser tsconfig; test-only
+import path from 'path';
 
-const css = readFileSync(resolve(__dirname, 'edit-mode.css'), 'utf-8');
+// @ts-expect-error -- __dirname available in vitest node runtime
+const cssPath = path.resolve(__dirname, 'edit-mode.css');
+const css = fs.readFileSync(cssPath, 'utf-8');
 
 describe('edit-mode.css', () => {
   it('scopes grid background to .editing-active', () => {
