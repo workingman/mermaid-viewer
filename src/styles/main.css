@@ -1,0 +1,22 @@
+:root {
+  --edge-corner-radius: 6px;
+  --edge-crossing-gap: 10px;
+  --edge-bridge-radius: 5px;
+  --grid-spacing: 20px;
+  --grid-color: rgba(0, 0, 0, 0.05);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+@import './error-banner.css';
+@import './edit-mode.css';
