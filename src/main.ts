@@ -6,47 +6,83 @@ import { loadSidecar, mergeSidecarIntoGraph } from '@sidecar/sidecar-manager';
 import { computeLayout } from '@layout-engine/layout-engine';
 import { compose } from '@svg-compositor/svg-compositor';
 import { isWriteLocked } from '@edit/write-lock';
-import type { ParsedGraph, ParsedEdge, SidecarData } from '@shared/types';
+import { ErrorBoundary } from '@error/error-boundary';
+import { isGraphDiagram } from '@shared/constants';
+import { MermaidParseError } from '@shared/types';
+import type { ParsedGraph, ParsedEdge, SidecarData, LayoutResult } from '@shared/types';
 
-document.title = 'Mermaid Viewer';
+export interface WindowState {
+  filePath: string | null;
+  sidecarPath: string | null;
+  lastGraph: ParsedGraph | null;
+  lastLayout: LayoutResult | null;
+  lastSvg: SVGElement | null;
+  isEditing: boolean;
+  isEditingAllowed: boolean;
+  renderInProgress: boolean;
+  renderQueued: boolean;
+  error: string | null;
+}
 
-interface FileChangedPayload {
+export interface FileChangedPayload {
   path: string;
   kind: 'mmd' | 'sidecar';
 }
 
-interface AppState {
-  mmdPath: string | null;
-  cachedGraph: ParsedGraph | null;
-  cachedFragments: Map<string, string>;
-  cachedEdges: ParsedEdge[];
-  sidecar: SidecarData | null;
+export function createWindowState(): WindowState {
+  return {
+    filePath: null, sidecarPath: null,
+    lastGraph: null, lastLayout: null, lastSvg: null,
+    isEditing: false, isEditingAllowed: false,
+    renderInProgress: false, renderQueued: false, error: null,
+  };
 }
 
-const state: AppState = {
-  mmdPath: null,
-  cachedGraph: null,
-  cachedFragments: new Map(),
-  cachedEdges: [],
-  sidecar: null,
+export const windowState: WindowState = createWindowState();
+export const renderDeps = {
+  cachedFragments: new Map<string, string>(),
+  cachedEdges: [] as ParsedEdge[],
+  sidecar: null as SidecarData | null,
 };
 
-async function readSidecarForMmd(mmdPath: string): Promise<SidecarData | null> {
-  const sidecarPath = await invoke<string>('get_sidecar_path', { mmdPath });
+let errorBoundary: ErrorBoundary | null = null;
+
+function getErrorBoundary(): ErrorBoundary {
+  if (!errorBoundary) {
+    errorBoundary = new ErrorBoundary(document.getElementById('app')!);
+  }
+  return errorBoundary;
+}
+
+export async function renderPipeline(): Promise<void> {
+  if (!windowState.lastGraph) return;
+  if (windowState.renderInProgress) {
+    windowState.renderQueued = true;
+    return;
+  }
+  windowState.renderInProgress = true;
   try {
-    const content = await invoke<string>('read_file', { path: sidecarPath });
-    return loadSidecar(content);
-  } catch {
-    return loadSidecar(null);
+    await executeRender();
+  } finally {
+    windowState.renderInProgress = false;
+    if (windowState.renderQueued) {
+      windowState.renderQueued = false;
+      await renderPipeline();
+    }
   }
 }
 
-async function renderPipeline(): Promise<void> {
-  if (!state.cachedGraph) return;
-  const merged = mergeSidecarIntoGraph(state.cachedGraph, state.sidecar);
+async function executeRender(): Promise<void> {
+  const graph = windowState.lastGraph!;
+  if (!isGraphDiagram(graph.diagramType)) return;
+  const merged = mergeSidecarIntoGraph(graph, renderDeps.sidecar);
   const layout = await computeLayout(merged);
-  const svg = compose(layout, state.cachedFragments, state.cachedEdges);
+  windowState.lastLayout = layout;
+  const svg = compose(layout, renderDeps.cachedFragments, renderDeps.cachedEdges);
   displaySvg(svg);
+  windowState.lastSvg = svg;
+  windowState.error = null;
+  getErrorBoundary().handleRenderSuccess(svg);
 }
 
 function displaySvg(svg: SVGSVGElement): void {
@@ -56,29 +92,53 @@ function displaySvg(svg: SVGSVGElement): void {
   container.appendChild(svg);
 }
 
-async function handleMmdChange(path: string): Promise<void> {
-  state.mmdPath = path;
-  const content = await invoke<string>('read_file', { path });
-  const result = await parse(content);
-  state.cachedGraph = result.graph;
-  state.cachedFragments = result.nodeSvgFragments;
-  state.cachedEdges = result.graph.edges;
-  state.sidecar = await readSidecarForMmd(path);
-  await renderPipeline();
+async function readSidecar(mmdPath: string): Promise<SidecarData | null> {
+  const sidecarPath = await invoke<string>('get_sidecar_path', { mmdPath });
+  windowState.sidecarPath = sidecarPath;
+  try {
+    const content = await invoke<string>('read_file', { path: sidecarPath });
+    return loadSidecar(content);
+  } catch {
+    return loadSidecar(null);
+  }
 }
 
-async function handleSidecarChange(path: string): Promise<void> {
+export async function handleMmdChange(path: string): Promise<void> {
+  windowState.filePath = path;
+  try {
+    const content = await invoke<string>('read_file', { path });
+    const result = await parse(content);
+    windowState.lastGraph = result.graph;
+    windowState.isEditingAllowed = isGraphDiagram(result.graph.diagramType);
+    renderDeps.cachedFragments = result.nodeSvgFragments;
+    renderDeps.cachedEdges = result.graph.edges;
+    renderDeps.sidecar = windowState.isEditingAllowed ? await readSidecar(path) : null;
+    await renderPipeline();
+  } catch (err) {
+    handlePipelineError(err);
+  }
+}
+
+export async function handleSidecarChange(path: string): Promise<void> {
   if (isWriteLocked(path)) return;
   try {
     const content = await invoke<string>('read_file', { path });
-    state.sidecar = loadSidecar(content);
+    renderDeps.sidecar = loadSidecar(content);
   } catch {
-    state.sidecar = null;
+    renderDeps.sidecar = null;
   }
   await renderPipeline();
 }
 
-async function onFileChanged(payload: FileChangedPayload): Promise<void> {
+function handlePipelineError(err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  windowState.error = message;
+  if (err instanceof MermaidParseError) {
+    getErrorBoundary().showError(message);
+  }
+}
+
+export async function onFileChanged(payload: FileChangedPayload): Promise<void> {
   if (payload.kind === 'mmd') {
     await handleMmdChange(payload.path);
   } else if (payload.kind === 'sidecar') {
@@ -89,5 +149,3 @@ async function onFileChanged(payload: FileChangedPayload): Promise<void> {
 listen<FileChangedPayload>('file-changed', (event) => {
   onFileChanged(event.payload).catch(console.error);
 });
-
-export { state, onFileChanged, renderPipeline, handleMmdChange, handleSidecarChange };
