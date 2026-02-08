@@ -1,1 +1,40 @@
 /* Edit mode styles -- see TDD Section 6 editing mode */
+
+.editing-active {
+  --edit-grid-size: 20px;
+  --edit-grid-color: rgba(0, 0, 0, 0.05);
+
+  background:
+    repeating-linear-gradient(
+      to right,
+      var(--edit-grid-color) 0,
+      var(--edit-grid-color) 1px,
+      transparent 1px,
+      transparent var(--edit-grid-size)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--edit-grid-color) 0,
+      var(--edit-grid-color) 1px,
+      transparent 1px,
+      transparent var(--edit-grid-size)
+    );
+}
+
+.editing-active::after {
+  content: 'EDIT MODE';
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  font-family: monospace;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 999;
+}
+
+.node--selected {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
