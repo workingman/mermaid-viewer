@@ -56,7 +56,7 @@ export interface ELKNode {
   height: number;
   x?: number;
   y?: number;
-  layoutOptions?: { 'elk.position'?: string };
+  layoutOptions?: Record<string, string>;
 }
 
 export interface ELKEdge {
