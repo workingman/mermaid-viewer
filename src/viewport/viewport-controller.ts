@@ -1,4 +1,5 @@
 import type { ViewportState, ViewportRect } from '@shared/types';
+import { GestureHandler } from './gesture-handler';
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5.0;
@@ -9,6 +10,7 @@ export class ViewportController {
   private containerWidth: number;
   private containerHeight: number;
   private svgElement: SVGElement | null = null;
+  private gestureHandler: GestureHandler;
 
   constructor(containerWidth: number, containerHeight: number) {
     this.containerWidth = containerWidth;
@@ -19,6 +21,15 @@ export class ViewportController {
       panY: 0,
       contentBounds: { x: 0, y: 0, width: 0, height: 0 },
     };
+    this.gestureHandler = new GestureHandler(this);
+  }
+
+  attach(container: HTMLElement): void {
+    this.gestureHandler.attach(container);
+  }
+
+  detach(): void {
+    this.gestureHandler.detach();
   }
 
   getState(): ViewportState {
