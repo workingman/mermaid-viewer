@@ -31,16 +31,19 @@ one parent's sub-issues leaves less room for the next parent's reasoning.
 Quality degrades predictably after ~12 cumulative sub-issues in a single
 context.
 
-### Rule 2: Maximum 5 sub-issues per invocation
+### Rule 2: Maximum 5 sub-issues per execution invocation
 
-A single invocation MUST NOT generate more than **5 sub-issues**. If a parent
-requires more than 5 sub-issues:
+A single **execution** invocation MUST NOT **create** more than **5 sub-issues**.
+This is a context-management cap for the creation step, not a scoping limit.
+The right number of sub-issues for a parent is determined in the planning phase
+(see Process § Phase 2a) based purely on right-sizing — if a parent needs 3
+right-sized issues, plan 3; if it needs 15, plan 15. The execution phase
+handles batching:
 
-1. Generate the first batch (up to 5), create them in GitHub, and end.
-2. Start a new invocation for the same parent to generate the next batch.
-3. The second invocation receives the parent issue number and the numbers of
-   already-created sub-issues so it can avoid duplication and cover remaining
-   scope.
+1. The first execution invocation creates the first batch (up to 5) and ends.
+2. A second execution invocation is spawned for the next batch, receiving the
+   already-created issue numbers to avoid duplication.
+3. Repeat until all planned sub-issues are created.
 
 Why: Each sub-issue is ~600-800 tokens of generated output. Beyond 5, the
 agent's working memory for cross-referencing against PRD/TDD requirements
@@ -79,15 +82,62 @@ move a misscoped one, add missing acceptance criteria) before finishing — as
 long as doing so stays within the 5-sub-issue cap for the current invocation.
 If the cap would be exceeded, report the gap for the next invocation to handle.
 
-### Invocation template
+### Planning invocation template
 
-When spawning a subagent for a parent issue, provide this context:
+When spawning a **planning** subagent for a parent issue (Phase 2a), provide
+this context:
 
 ```
-You are generating sub-issues for ONE parent issue.
+AGENT_META: {"type": "issue-planning", "parent": <number>}
+
+You are PLANNING (not creating) sub-issues for ONE parent issue.
 
 PARENT ISSUE: #<number> — <title>
 SCOPE: <list of PRD FR-xxx numbers and TDD sections assigned to this parent>
+
+INPUTS (read these files):
+- PRD: <path>
+- TDD: <path>
+- Parent issue: gh issue view <number>
+
+OUTPUT: A numbered list of right-sized sub-issues. For each:
+  - Title (imperative sentence)
+  - One-line summary of what it accomplishes
+  - Domain tag (e.g., backend/rust, frontend/ts)
+  - Estimated complexity (low/medium/high)
+
+RIGHT-SIZING CRITERIA (see process/create-issues.md § Right-Sizing):
+- One agent context window per issue
+- Conceptual coherence — one responsibility per issue
+- 2-5 implementation checkpoints of roughly even weight
+- Testable in isolation with 2-8 tests
+- There is NO cap on the number of sub-issues. Plan as many as the scope
+  requires to keep each one right-sized. 3 is fine. 12 is fine. The execution
+  phase handles batching.
+
+CONSTRAINTS:
+- Do NOT create any GitHub issues. Output is a plan only.
+- Only plan sub-issues for THIS parent. Cross-parent needs are noted as
+  dependencies.
+- Run coverage checks: every parent AC, every in-scope PRD FR, and every
+  in-scope TDD component must map to at least one planned sub-issue.
+```
+
+### Execution invocation template
+
+When spawning an **execution** subagent for a parent issue (Phase 2b), provide
+this context:
+
+```
+AGENT_META: {"type": "issue-creation", "parent": <number>, "batch": <n>}
+
+You are creating sub-issues for ONE parent issue from a pre-approved plan.
+
+PARENT ISSUE: #<number> — <title>
+SCOPE: <list of PRD FR-xxx numbers and TDD sections assigned to this parent>
+
+PLANNED SUB-ISSUES (create these):
+<paste the numbered list from the planning phase — this batch only>
 
 INPUTS (read these files):
 - PRD: <path>
@@ -97,6 +147,7 @@ INPUTS (read these files):
 
 CONSTRAINTS:
 - Maximum 5 sub-issues in this invocation.
+- Create ONLY the sub-issues listed in PLANNED SUB-ISSUES above.
 - Only create sub-issues for THIS parent. Cross-parent needs are noted as
   dependencies, not new sub-issues.
 - Run the self-validation checklist before finishing.
@@ -109,6 +160,43 @@ BASH PERMISSION PATTERN:
   `bash run.sh .tmp/agent-<taskname>.sh`. This is pre-authorized and avoids
   permission prompts. Do NOT use /tmp/ — only `.tmp/` in the project root.
 ```
+
+## Right-Sizing
+
+The real constraint for agent work is **context window**, not clock time. An
+agent that touches 12 files across 3 domains will degrade regardless of how
+"simple" each change is. Three complementary layers address this:
+
+1. **Right-sizing** — get most issues completable in one context window
+   (optimistic planning).
+2. **Checkpoints** — graceful degradation when we're off by a bit. The agent
+   commits at a checkpoint and stops; a fresh session picks up from the last
+   commit.
+3. **Observability** — spot when we're off by a lot, so we can improve sizing
+   heuristics over time (see `process/agent-observability.md`).
+
+### Heuristics
+
+Use these when planning sub-issues:
+
+- **Conceptual coherence** — each issue has one responsibility. If you need
+  "and" to describe it, consider splitting.
+- **Bounded file surface** — if the agent needs to read or modify a large
+  number of files, the issue is probably too broad. A growing file list is a
+  signal to split, not a hard cap.
+- **Clear interfaces** — inputs and outputs are defined so the agent stays on
+  rails. If the issue depends on undefined interfaces from other issues, it's
+  not self-contained enough.
+- **2-5 checkpoints of roughly even weight** — no single checkpoint should
+  represent more than ~40% of the work. If one checkpoint dwarfs the others,
+  the issue scope is unbalanced.
+- **Testable in isolation** — 2-8 tests without needing the full system running.
+  If testing requires extensive integration setup, the issue may be scoped at
+  the wrong level.
+- **Do NOT pad or cap** — create only as many sub-issues as the scope
+  requires. 3 is fine. 12 is fine. The planning phase determines the right
+  count; the execution phase handles batching (max 5 per subagent, additional
+  subagents spawned as needed).
 
 ## Label Setup
 
@@ -165,23 +253,33 @@ gh label create "phase:polish" --color "E6E6E6" --description "Polish: error han
 
 6.  **Wait for Confirmation:** Pause and wait for the user to confirm.
 
-7.  **Phase 2 -- Generate Sub-Issues and Create in GitHub:** Once confirmed:
+7.  **Phase 2a -- Plan Sub-Issues:** Once confirmed:
 
     a. Create all parent issues first using `gh issue create`. Record their
        issue numbers.
-    b. For each parent issue, spawn a **separate invocation** (subagent or
-       new session) to generate and create its sub-issues. Follow the Context
-       Management rules above — especially the 5-sub-issue cap, scope fencing,
-       and self-validation checklist.
-    c. Each invocation creates its sub-issues via `gh issue create` and links
-       them to the parent using the `gh api` sub-issues endpoint.
+    b. For each parent issue, spawn a **lightweight planning subagent** to
+       determine the right number of sub-issues. The planning agent reads the
+       PRD, TDD, and parent issue, then outputs a numbered list of right-sized
+       sub-issues (title + summary + domain + complexity). No cap on count —
+       the plan reflects what the scope actually requires. Use the **planning
+       invocation template** from Context Management.
+    c. The orchestrator reviews the plans. (Optional: present the combined
+       plan to the user for a final check before creation.)
+
+8.  **Phase 2b -- Create Sub-Issues in GitHub:** For each parent's plan:
+
+    a. If the plan has 5 or fewer sub-issues, spawn a single **execution
+       subagent** to create them all. Use the **execution invocation template**
+       from Context Management.
+    b. If the plan has more than 5 sub-issues, chunk into batches of 5 and
+       spawn one execution subagent per batch. The second batch receives
+       already-created issue numbers to avoid duplication.
+    c. Each execution subagent creates its sub-issues via `gh issue create`
+       and links them to the parent using the `gh api` sub-issues endpoint.
     d. If the PRD specifies ordering constraints, set dependencies between
        issues using the `gh api` dependencies endpoint.
-    e. If a parent requires more than 5 sub-issues, spawn additional
-       invocations for the same parent (passing already-created sub-issue
-       numbers to avoid duplication).
 
-8.  **Summary:** After all issues are created, present a summary table showing issue numbers, titles, parent-child relationships, and URLs.
+9.  **Summary:** After all issues are created, present a summary table showing issue numbers, titles, parent-child relationships, and URLs.
 
 ## Issue Structure
 
@@ -288,7 +386,7 @@ starting. Key points: work in checkpoint order, commit after each, write
 Each sub-issue should be:
 
 - **Atomic:** Implementable and testable in isolation. One issue = one PR.
-- **Right-sized:** Takes a developer 1-4 hours to implement. If it would take more than a day, break it down further. If it would take less than 30 minutes, combine it with related work.
+- **Right-sized:** Completable within a single agent context window (see § Right-Sizing). If it would require multiple context windows, break it down further. If it's trivially small (a single function with no edge cases), combine it with related work.
 - **Self-contained:** Includes enough context, acceptance criteria, and file references to stand alone. The implementer should not need to read the full PRD.
 - **Testable:** Acceptance criteria are concrete and checkable. Avoid vague criteria like "works correctly." Prefer "API returns 201 on success and 409 on conflict."
 
@@ -308,11 +406,14 @@ Do NOT create separate test-only issues. Instead, embed testing expectations wit
 
 ### Creating a parent issue
 
+Write the issue body to a temporary file, then pass it with `--body-file`.
+This avoids heredoc quoting issues when the body contains code snippets,
+backticks, or single quotes.
+
 ```bash
-gh issue create \
-  --title "Feature Name: Phase Description" \
-  --label "phase:data" \
-  --body-file - <<'ISSUE_BODY'
+# 1. Write body to a temp file (use Write tool, not heredoc)
+#    File: .tmp/parent-body.md
+#    Contents:
 ## Overview
 
 Description here.
@@ -322,7 +423,12 @@ Description here.
 ## Acceptance Criteria
 
 - [ ] All sub-issues are complete
-ISSUE_BODY
+
+# 2. Create the issue
+gh issue create \
+  --title "Feature Name: Phase Description" \
+  --label "phase:data" \
+  --body-file .tmp/parent-body.md
 ```
 
 Capture the issue number from the output URL for linking sub-issues.
@@ -330,11 +436,9 @@ Capture the issue number from the output URL for linking sub-issues.
 ### Creating a sub-issue
 
 ```bash
-gh issue create \
-  --title "Add email validation to user registration endpoint" \
-  --label "type:feature" \
-  --label "complexity:low" \
-  --body-file - <<'ISSUE_BODY'
+# 1. Write body to a temp file (use Write tool, not heredoc)
+#    File: .tmp/sub-body.md
+#    Contents:
 ## Context
 
 ...
@@ -347,7 +451,13 @@ gh issue create \
 ## Files to Modify
 
 - ...
-ISSUE_BODY
+
+# 2. Create the issue
+gh issue create \
+  --title "Add email validation to user registration endpoint" \
+  --label "type:feature" \
+  --label "complexity:low" \
+  --body-file .tmp/sub-body.md
 ```
 
 ### Linking a sub-issue to its parent
@@ -403,17 +513,19 @@ Each issue must contain enough context to stand alone. Do not assume the reader 
 2. Always wait for user confirmation before creating issues in GitHub.
 3. **Never generate sub-issues for more than one parent in a single context
    window.** See Context Management.
-4. **Never generate more than 5 sub-issues in a single invocation.** See
+4. **Never create more than 5 sub-issues in a single execution invocation.**
+   This is a context cap, not a scoping target. See Context Management.
+5. **Use the two-phase process:** plan sub-issues first (Phase 2a), then
+   create them (Phase 2b). See Process.
+6. **Run the self-validation checklist before finishing every invocation.** See
    Context Management.
-5. **Run the self-validation checklist before finishing every invocation.** See
-   Context Management.
-6. Every sub-issue must have testable acceptance criteria.
-7. Prefer fewer, well-scoped issues over many trivial ones.
-8. Reference specific files from the TDD directory structure and existing code
+7. Every sub-issue must have testable acceptance criteria.
+8. Prefer fewer, well-scoped issues over many trivial ones. See § Right-Sizing.
+9. Reference specific files from the TDD directory structure and existing code
    patterns in each issue.
-9. Every sub-issue must include relevant interface contracts and data models
-   from the TDD.
-10. Every sub-issue must reference applicable implementation decisions and risk
+10. Every sub-issue must include relevant interface contracts and data models
+    from the TDD.
+11. Every sub-issue must reference applicable implementation decisions and risk
     mitigations from the TDD.
-11. After creating all issues, print a summary table with issue numbers and
+12. After creating all issues, print a summary table with issue numbers and
     URLs.

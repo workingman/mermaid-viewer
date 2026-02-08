@@ -7,6 +7,9 @@ run.sh
 run2.sh
 run3.sh
 
+# Agent observability
+.agent-stats.jsonl
+
 # Session artifacts (not project deliverables)
 SESSION_NOTES.md
 SESSION_STATE.mmd
