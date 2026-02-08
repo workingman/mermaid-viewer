@@ -114,3 +114,19 @@ export interface ELKLayoutResult {
   children: PositionedNode[];
   edges: RoutedEdge[];
 }
+
+// Parse pipeline types
+
+export interface ParseResult {
+  graph: ParsedGraph;
+  nodeSvgFragments: Map<string, string>;
+  passthroughSvg?: string;
+}
+
+export class MermaidParseError extends Error {
+  override name = 'MermaidParseError' as const;
+
+  constructor(message: string) {
+    super(message);
+  }
+}

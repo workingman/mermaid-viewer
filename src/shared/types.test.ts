@@ -3,6 +3,7 @@ import type {
   ParsedNode,
   ParsedEdge,
   ParsedGraph,
+  ParseResult,
   SidecarData,
   MergedNode,
   MergedGraph,
@@ -11,6 +12,7 @@ import type {
   EdgeSection,
   LayoutResult,
 } from './types';
+import { MermaidParseError } from './types';
 
 describe('ParsedNode', () => {
   it('accepts a valid node', () => {
@@ -149,5 +151,26 @@ describe('LayoutResult', () => {
       routedEdges: [],
     };
     expect(result.positionedNodes).toHaveLength(0);
+  });
+});
+
+describe('ParseResult', () => {
+  it('holds graph and nodeSvgFragments with optional passthroughSvg', () => {
+    const result: ParseResult = {
+      graph: { nodes: [], edges: [], diagramType: 'flowchart' },
+      nodeSvgFragments: new Map([['A', '<rect/>']]),
+      passthroughSvg: '<svg>full</svg>',
+    };
+    expect(result.nodeSvgFragments.get('A')).toBe('<rect/>');
+    expect(result.passthroughSvg).toBe('<svg>full</svg>');
+  });
+});
+
+describe('MermaidParseError', () => {
+  it('has name MermaidParseError and preserves message', () => {
+    const err = new MermaidParseError('bad syntax');
+    expect(err.name).toBe('MermaidParseError');
+    expect(err.message).toBe('bad syntax');
+    expect(err).toBeInstanceOf(Error);
   });
 });
