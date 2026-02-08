@@ -9,7 +9,8 @@ To guide an AI assistant in decomposing a Product Requirements Document (PRD) in
 - The `gh` CLI is authenticated (`gh auth status` succeeds)
 - The working directory is a git repository linked to a GitHub remote
 - Required labels exist in the repository (see Label Setup below)
-- The PRD follows the structure defined in `process/create-prd.md`
+- A completed PRD following the structure from `process/create-prd.md`
+- A completed TDD following the structure from `process/create-tdd.md`
 
 ## Label Setup
 
@@ -38,13 +39,20 @@ gh label create "phase:polish" --color "E6E6E6" --description "Polish: error han
 
 ## Process
 
-1.  **Receive PRD Reference:** The user points the AI to a specific PRD file.
+1.  **Receive PRD and TDD References:** The user points the AI to a specific PRD file and its corresponding TDD file.
 
-2.  **Analyze PRD:** Read and analyze the functional requirements, user stories, acceptance criteria, implementation phases, and dependencies from the PRD.
+2.  **Analyze PRD:** Read and analyze the functional requirements, acceptance criteria, implementation phases, and dependencies from the PRD.
 
-3.  **Assess Current State:** Review the existing codebase to understand architectural patterns, conventions, and relevant existing components. Identify files, modules, and utilities that can be leveraged or need modification.
+3.  **Analyze TDD:** Read and analyze the technology choices, architecture overview, data models, interface contracts, directory structure, and key implementation decisions from the TDD. The TDD is the primary source for:
+    - **File paths:** Which files to create or modify (from the directory structure)
+    - **Interface contracts:** The exact function signatures and data types to implement
+    - **Implementation guidance:** Patterns to follow, pitfalls to avoid, architectural constraints
+    - **Data models:** Schemas, types, and validation rules
+    - **Risk mitigations:** Technical risks and their required mitigations (from the risk register)
 
-4.  **Phase 1 -- Generate Parent Issues (draft only):** Based on the PRD analysis and codebase assessment, draft the parent issues. Each parent issue maps to an implementation phase or major functional area from the PRD.
+4.  **Assess Current State:** Review the existing codebase to understand architectural patterns, conventions, and relevant existing components. Identify files, modules, and utilities that can be leveraged or need modification.
+
+5.  **Phase 1 -- Generate Parent Issues (draft only):** Based on the PRD analysis, TDD analysis, and codebase assessment, draft the parent issues. Each parent issue maps to an implementation phase or major functional area from the PRD.
 
     Present the parent issues to the user in this format:
 
@@ -57,9 +65,9 @@ gh label create "phase:polish" --color "E6E6E6" --description "Polish: error han
 
     Inform the user: "I have drafted the parent issues based on the PRD. Ready to generate the sub-issues and create everything in GitHub? Respond with 'Go' to proceed."
 
-5.  **Wait for Confirmation:** Pause and wait for the user to confirm.
+6.  **Wait for Confirmation:** Pause and wait for the user to confirm.
 
-6.  **Phase 2 -- Generate Sub-Issues and Create in GitHub:** Once confirmed, for each parent issue:
+7.  **Phase 2 -- Generate Sub-Issues and Create in GitHub:** Once confirmed, for each parent issue:
 
     a. Break it down into sub-issues (the atomic implementation tasks).
     b. Create the parent issue using `gh issue create`.
@@ -67,7 +75,7 @@ gh label create "phase:polish" --color "E6E6E6" --description "Polish: error han
     d. Link sub-issues to their parent using the `gh api` sub-issues endpoint.
     e. If the PRD specifies ordering constraints, set dependencies between issues using the `gh api` dependencies endpoint.
 
-7.  **Summary:** After all issues are created, present a summary table showing issue numbers, titles, parent-child relationships, and URLs.
+8.  **Summary:** After all issues are created, present a summary table showing issue numbers, titles, parent-child relationships, and URLs.
 
 ## Issue Structure
 
@@ -82,9 +90,10 @@ Parent issues represent a major phase or functional area. They are tracking cont
 ```markdown
 ## Overview
 
-[2-3 sentences: what this phase accomplishes and why it matters. Reference the PRD file path.]
+[2-3 sentences: what this phase accomplishes and why it matters. Reference the PRD and TDD file paths.]
 
 **PRD:** `docs/prd-feature-name.md`
+**TDD:** `docs/tdd-feature-name.md`
 
 ## Sub-Issues
 
@@ -111,11 +120,15 @@ Sub-issues are the atomic units of work. Each should be completable in a single 
 ```markdown
 ## Context
 
-[2-3 sentences: why this work is needed, what problem it solves, how it fits into the parent issue. Include enough context that the reader does NOT need to re-read the entire PRD.]
+[2-3 sentences: why this work is needed, what problem it solves, how it fits into the parent issue. Include enough context that the reader does NOT need to re-read the PRD or TDD.]
 
 ## Requirements
 
 [Extracted from the relevant PRD functional requirement(s). Reference by FR number.]
+
+## Technical Reference
+
+[Extracted from the TDD. Include the specific interface contracts, data models, and implementation decisions relevant to this issue. Reference by TDD section. E.g., "See TDD Section 4: LayoutEngine.computeLayout() interface." Include enough detail that the implementer does not need to re-read the full TDD.]
 
 ## Acceptance Criteria
 
@@ -124,14 +137,16 @@ Sub-issues are the atomic units of work. Each should be completable in a single 
 - [ ] Unit tests cover success and error paths
 - [ ] All existing tests continue to pass
 
-## Files to Modify
+## Files to Create/Modify
 
-- `path/to/file.ts` -- [what changes and why]
+[Derived from the TDD directory structure (Section 5) and interface contracts (Section 4).]
+
+- `path/to/file.ts` -- [what to implement, referencing TDD interface contracts]
 - `path/to/file.test.ts` -- [test coverage for the above]
 
 ## Implementation Notes
 
-[Optional: architectural hints, patterns to follow, gotchas. Reference existing code where helpful. E.g., "Follow the pattern in `src/services/auth.ts` for error handling."]
+[Architectural hints, patterns to follow, gotchas. Pull from TDD Section 6 (Key Implementation Decisions) and Section 8 (Risk Register) where relevant. Reference existing code patterns where helpful.]
 ```
 
 **Labels:** Apply `type:*` and `complexity:*` labels.
@@ -256,5 +271,7 @@ Each issue must contain enough context to stand alone. Do not assume the reader 
 2. Always wait for user confirmation before creating issues in GitHub
 3. Every sub-issue must have testable acceptance criteria
 4. Prefer fewer, well-scoped issues over many trivial ones
-5. Reference specific files and existing code patterns in each issue
-6. After creating all issues, print a summary table with issue numbers and URLs
+5. Reference specific files from the TDD directory structure and existing code patterns in each issue
+6. Every sub-issue must include relevant interface contracts and data models from the TDD
+7. Every sub-issue must reference applicable implementation decisions and risk mitigations from the TDD
+8. After creating all issues, print a summary table with issue numbers and URLs
