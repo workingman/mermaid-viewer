@@ -23,3 +23,19 @@ export interface ParsedGraph {
   edges: ParsedEdge[];
   diagramType: string;
 }
+
+export interface SidecarData {
+  version: 1;
+  nodes: Record<string, { x: number; y: number }>;
+}
+
+export interface MergedNode extends ParsedNode {
+  hintX?: number;
+  hintY?: number;
+}
+
+export interface MergedGraph {
+  nodes: MergedNode[];
+  edges: ParsedEdge[];
+  diagramType: string;
+}
