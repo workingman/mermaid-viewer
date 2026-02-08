@@ -72,3 +72,45 @@ export interface ELKInputGraph {
   children: ELKNode[];
   edges: ELKEdge[];
 }
+
+// Layout result types
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface EdgeSection {
+  startPoint: Point;
+  endPoint: Point;
+  bendPoints?: Point[];
+}
+
+export interface PositionedNode {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface RoutedEdge {
+  id: string;
+  sections: EdgeSection[];
+}
+
+export interface EdgeCrossing {
+  point: Point;
+  edge1Id: string;
+  edge2Id: string;
+}
+
+export interface LayoutResult {
+  positionedNodes: PositionedNode[];
+  routedEdges: RoutedEdge[];
+}
+
+export interface ELKLayoutResult {
+  children: PositionedNode[];
+  edges: RoutedEdge[];
+}
