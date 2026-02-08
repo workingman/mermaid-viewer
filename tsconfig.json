@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ESNext",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -17,7 +17,20 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path aliases */
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/shared/*"],
+      "@mermaid-parser/*": ["src/mermaid-parser/*"],
+      "@layout-engine/*": ["src/layout-engine/*"],
+      "@svg-compositor/*": ["src/svg-compositor/*"],
+      "@sidecar/*": ["src/sidecar/*"],
+      "@edit/*": ["src/edit/*"],
+      "@viewport/*": ["src/viewport/*"],
+      "@error/*": ["src/error/*"]
+    }
   },
   "include": ["src"]
 }
