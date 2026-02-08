@@ -2,6 +2,7 @@ import mermaid from 'mermaid';
 import type { ParseResult } from '@shared/types';
 import { MermaidParseError } from '@shared/types';
 import { extract } from './graph-extractor';
+import { detectDiagramType, isPassthrough } from './diagram-detector';
 
 let renderCounter = 0;
 
@@ -41,15 +42,30 @@ async function renderSvg(mmdText: string): Promise<string> {
   }
 }
 
-export async function parse(mmdText: string, diagramType = 'flowchart'): Promise<ParseResult> {
-  initMermaid();
-  await validateSyntax(mmdText);
-  const svg = await renderSvg(mmdText);
+function emptyResult(diagramType: string, svg: string): ParseResult {
+  return {
+    graph: { nodes: [], edges: [], diagramType },
+    nodeSvgFragments: new Map(),
+    passthroughSvg: svg,
+  };
+}
 
+function extractGraph(svg: string, diagramType: string): ParseResult {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svg, 'image/svg+xml');
   const svgEl = doc.documentElement;
   const { graph, nodeSvgFragments } = extract(svgEl, diagramType);
-
   return { graph, nodeSvgFragments, passthroughSvg: svg };
+}
+
+export async function parse(mmdText: string): Promise<ParseResult> {
+  initMermaid();
+  await validateSyntax(mmdText);
+  const svg = await renderSvg(mmdText);
+  const diagramType = detectDiagramType(mmdText);
+
+  if (isPassthrough(diagramType)) {
+    return emptyResult(diagramType, svg);
+  }
+  return extractGraph(svg, diagramType);
 }
