@@ -86,7 +86,16 @@ describe('mergeSidecarIntoGraph', () => {
   it('preserves edges and diagramType', () => {
     const graph: ParsedGraph = {
       nodes: [makeNode('A')],
-      edges: [{ id: 'e1', sourceId: 'A', targetId: 'B', label: null, arrowType: 'arrow_point', lineStyle: 'solid' }],
+      edges: [
+        {
+          id: 'e1',
+          sourceId: 'A',
+          targetId: 'B',
+          label: null,
+          arrowType: 'arrow_point',
+          lineStyle: 'solid',
+        },
+      ],
       diagramType: 'sequence',
     };
     const result = mergeSidecarIntoGraph(graph, null);

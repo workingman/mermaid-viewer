@@ -39,9 +39,7 @@ export function mergeSidecarIntoGraph(
   return { nodes, edges: graph.edges, diagramType: graph.diagramType };
 }
 
-export function buildSidecarFromPositions(
-  nodes: PositionedNode[],
-): SidecarData {
+export function buildSidecarFromPositions(nodes: PositionedNode[]): SidecarData {
   const entries: Record<string, { x: number; y: number }> = {};
   for (const node of nodes) {
     entries[node.id] = { x: node.x, y: node.y };
