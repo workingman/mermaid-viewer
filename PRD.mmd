@@ -1,0 +1,91 @@
+graph TD
+
+    %% Core Purpose
+    P[Application Purpose: Personal Mermaid renderer with layout augmentation]
+        --> P1[Primary Goal: Instant viewing of .mmd files via Finder integration]
+    P --> P2[Secondary Goal: Precise visual layout control without altering semantics]
+    P --> P3[Design Philosophy: Lean Mermaid files optimized for LLM context efficiency]
+
+    %% Target User & Scope
+    U[Target User: Individual developer or small internal team]
+        --> U1[Usage Context: Personal productivity, not publicly marketed]
+        --> U2[Primary Workflow: AI-generated and AI-updated Mermaid diagrams]
+
+    %% File Model
+    F[Dual-File Model: Separation of semantics and presentation]
+        --> F1[Mermaid File: Semantic entities and relationships only]
+        --> F2[Sidecar JSON: Layout, layers, and styling hints]
+        --> F3[File Association: Double-click .mmd opens application]
+
+    %% Viewing Mode
+    V[Viewing Mode: Default application state]
+        --> V1[Render Behavior: Apply sidecar layout hints if present]
+        --> V2[Fallback Behavior: Use native Mermaid auto-layout]
+        --> V3[Interaction Model: Read-only, fast comprehension]
+
+    %% Layout Editing Mode
+    L[Layout Editing Mode: Explicit user-controlled state]
+        --> L1[UI Control: Pill-style toggle between View and Edit]
+        --> L2[Interaction: Drag nodes while preserving relationships]
+        --> L3[Persistence: Save node positions to sidecar file]
+        --> L4[Constraint: No visual editing of relationships]
+
+    %% Mermaid Integrity
+    M[Mermaid Integrity Constraints]
+        --> M1[Semantics Owned by Mermaid Source]
+        --> M2[Relationships Defined Exclusively in Mermaid]
+        --> M3[Presentation Data Explicitly Excluded]
+
+    %% AI-Centric Workflow
+    AI[AI-Centric Workflow Assumptions]
+        --> AI1[Mermaid Files Authored or Updated by LLMs]
+        --> AI2[Risk: Node identity drift during AI rewrites]
+        --> AI3[Mitigation: Stable naming conventions encouraged]
+        --> AI4[Failure Mode: Orphaned layout hints safely discarded]
+        --> AI5[Recovery: New nodes auto-placed using Mermaid defaults]
+
+    %% Layout Hint Strategy
+    H[Layout Hint Strategy]
+        --> H1[Missing Hints: Automatic Mermaid placement]
+        --> H2[Manual Refinement: User adjusts layout post-generation]
+        --> H3[Non-Semantic: Layout hints carry no meaning]
+
+    %% Layer System
+    LY[Layer System: Visual abstraction only]
+        --> LY1[Definition Location: Sidecar JSON exclusively]
+        --> LY2[Implementation: CSS-like tags or identifiers]
+        --> LY3[UI Control: Toggle visibility of layers]
+        --> LY4[Constraint: No manual cross-layer movement]
+        --> LY5[Layer Changes: Performed via AI or external edits]
+
+    %% Real-Time File Monitoring
+    R[Real-Time File Monitoring]
+        --> R1[Watched Files: Mermaid and sidecar JSON]
+        --> R2[Trigger: File system change events]
+        --> R3[Result: Immediate re-render]
+        --> R4[Use Case: Live AI-driven updates]
+
+    %% Rendering Platform
+    RP[Rendering Platform Architecture]
+        --> RP1[Shared Core: Web-based Mermaid renderer]
+        --> RP2[Technology: Mermaid.js with HTML or canvas rendering]
+        --> RP3[Single Rendering Logic Shared Across Platforms]
+
+    %% macOS Native App
+    MAC[macOS Native Application]
+        --> MAC1[Native Shell Embedding Web Renderer]
+        --> MAC2[Example: WebView-based rendering surface]
+        --> MAC3[Benefits: Finder integration and native UX]
+
+    %% Optional Web App
+    WEB[Optional Web Application Deployment]
+        --> WEB1[Same Rendering Core as Native App]
+        --> WEB2[Purpose: Lightweight access without installation]
+        --> WEB3[Constraint: Full feature parity not required]
+
+    %% Future Direction
+    FUT[Future Considerations]
+        --> FUT1[Support for Additional Mermaid Diagram Types]
+        --> FUT2[Optional Split View: Code and diagram]
+        --> FUT3[Diagrams as State: Session continuation artifacts for LLMs]
+
