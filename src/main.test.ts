@@ -71,6 +71,7 @@ function makeGraph(diagramType = 'flowchart'): ParsedGraph {
 
 const { invoke } = await import('@tauri-apps/api/core');
 const { parse } = await import('@mermaid-parser/mermaid-parser');
+const { loadSidecar } = await import('@sidecar/sidecar-manager');
 const {
   windowState,
   renderDeps,
@@ -78,6 +79,7 @@ const {
   handleMmdChange,
   renderPipeline,
   onFileChanged,
+  onWindowFileOpened,
 } = await import('./main');
 
 beforeEach(() => {
@@ -176,5 +178,38 @@ describe('onFileChanged', () => {
     });
     await onFileChanged({ path: '/test.mmd', kind: 'mmd' });
     expect(windowState.filePath).toBe('/test.mmd');
+  });
+
+  it('dispatches sidecar kind and skips parse', async () => {
+    windowState.lastGraph = makeGraph();
+    vi.mocked(invoke).mockResolvedValueOnce('{"version":1,"nodes":{}}');
+    await onFileChanged({ path: '/test.mmd.layout.json', kind: 'sidecar' });
+    expect(vi.mocked(parse)).not.toHaveBeenCalled();
+    expect(vi.mocked(loadSidecar)).toHaveBeenCalled();
+  });
+});
+
+describe('onWindowFileOpened', () => {
+  it('initializes state and triggers pipeline', async () => {
+    const graph = makeGraph();
+    vi.mocked(invoke).mockResolvedValueOnce('flowchart TD\n  A');
+    vi.mocked(invoke).mockResolvedValueOnce('/path/sidecar.json');
+    vi.mocked(invoke).mockRejectedValueOnce(new Error('none'));
+    vi.mocked(parse).mockResolvedValueOnce({
+      graph,
+      nodeSvgFragments: new Map(),
+    });
+    await onWindowFileOpened('/path/diagram.mmd');
+    expect(windowState.filePath).toBe('/path/diagram.mmd');
+    expect(windowState.lastGraph).toEqual(graph);
+  });
+});
+
+describe('pipeline sequencing', () => {
+  it('queues render when pipeline is already in progress', async () => {
+    windowState.lastGraph = makeGraph();
+    windowState.renderInProgress = true;
+    await renderPipeline();
+    expect(windowState.renderQueued).toBe(true);
   });
 });

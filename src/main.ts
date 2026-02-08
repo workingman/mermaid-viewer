@@ -146,6 +146,14 @@ export async function onFileChanged(payload: FileChangedPayload): Promise<void> 
   }
 }
 
+export async function onWindowFileOpened(path: string): Promise<void> {
+  await handleMmdChange(path);
+}
+
 listen<FileChangedPayload>('file-changed', (event) => {
   onFileChanged(event.payload).catch(console.error);
+});
+
+listen<{ path: string }>('window-file-opened', (event) => {
+  onWindowFileOpened(event.payload.path).catch(console.error);
 });
