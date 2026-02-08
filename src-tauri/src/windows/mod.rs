@@ -1,3 +1,5 @@
+pub mod window_manager;
+
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]

@@ -1,3 +1,5 @@
+mod commands;
+mod watchers;
 mod windows;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
