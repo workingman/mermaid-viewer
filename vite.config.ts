@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import path from "path";
 
@@ -39,5 +40,9 @@ export default defineConfig(async () => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+  },
+
+  test: {
+    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
   },
 }));
