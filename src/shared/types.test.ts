@@ -6,6 +6,10 @@ import type {
   SidecarData,
   MergedNode,
   MergedGraph,
+  ELKInputGraph,
+  PositionedNode,
+  EdgeSection,
+  LayoutResult,
 } from './types';
 
 describe('ParsedNode', () => {
@@ -100,5 +104,50 @@ describe('MergedGraph', () => {
       diagramType: 'flowchart',
     };
     expect(graph.nodes[0].hintX).toBe(5);
+  });
+});
+
+describe('ELKInputGraph', () => {
+  it('requires root id', () => {
+    const graph: ELKInputGraph = {
+      id: 'root',
+      layoutOptions: { 'elk.algorithm': 'layered' },
+      children: [],
+      edges: [],
+    };
+    expect(graph.id).toBe('root');
+  });
+});
+
+describe('PositionedNode', () => {
+  it('has required position fields', () => {
+    const node: PositionedNode = {
+      id: 'A',
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50,
+    };
+    expect(node.x).toBe(10);
+  });
+});
+
+describe('EdgeSection', () => {
+  it('has optional bendPoints', () => {
+    const section: EdgeSection = {
+      startPoint: { x: 0, y: 0 },
+      endPoint: { x: 100, y: 100 },
+    };
+    expect(section.bendPoints).toBeUndefined();
+  });
+});
+
+describe('LayoutResult', () => {
+  it('contains positionedNodes and routedEdges', () => {
+    const result: LayoutResult = {
+      positionedNodes: [],
+      routedEdges: [],
+    };
+    expect(result.positionedNodes).toHaveLength(0);
   });
 });
