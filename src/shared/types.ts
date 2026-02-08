@@ -146,3 +146,11 @@ export class MermaidParseError extends Error {
     super(message);
   }
 }
+
+export class LayoutError extends Error {
+  override name = 'LayoutError' as const;
+
+  constructor(message: string) {
+    super(message);
+  }
+}
