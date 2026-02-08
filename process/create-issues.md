@@ -101,6 +101,13 @@ CONSTRAINTS:
   dependencies, not new sub-issues.
 - Run the self-validation checklist before finishing.
 - Follow the sub-issue body template from process/create-issues.md.
+
+BASH PERMISSION PATTERN:
+- Single commands (gh issue create, gh api, etc.) can run directly.
+- For multi-line scripts (e.g., create issue + capture ID + link sub-issue),
+  write the script to `.tmp/agent-<taskname>.sh` and run it with
+  `bash run.sh .tmp/agent-<taskname>.sh`. This is pre-authorized and avoids
+  permission prompts. Do NOT use /tmp/ — only `.tmp/` in the project root.
 ```
 
 ## Label Setup
@@ -217,6 +224,13 @@ Sub-issues are the atomic units of work. Each should be completable in a single 
 **Body template:**
 
 ```markdown
+**Domain:** `[domain/layer]`
+
+[One of: `backend/rust`, `frontend/ts`, `shared/types`, `integration/e2e`,
+or a project-appropriate equivalent. Tells the agent which part of the
+codebase to study during "analyze before writing." If the issue spans two
+domains, list both — but consider splitting the issue instead.]
+
 ## Context
 
 [2-3 sentences: why this work is needed, what problem it solves, how it fits into the parent issue. Include enough context that the reader does NOT need to re-read the PRD or TDD.]
@@ -229,11 +243,26 @@ Sub-issues are the atomic units of work. Each should be completable in a single 
 
 [Extracted from the TDD. Include the specific interface contracts, data models, and implementation decisions relevant to this issue. Reference by TDD section. E.g., "See TDD Section 4: LayoutEngine.computeLayout() interface." Include enough detail that the implementer does not need to re-read the full TDD.]
 
+## Implementation Checkpoints
+
+[Ordered steps. Each is a natural commit point. The agent works through
+these in order and commits after each one. If context runs long, the agent
+stops after any checkpoint — a fresh session picks up from the last commit.]
+
+1. [ ] [First step — usually scaffolding: create files, define types/interfaces]
+2. [ ] [Core logic — the main function or component]
+3. [ ] [Integration — wire into existing code, connect to callers]
+4. [ ] [Tests — 2-8 focused tests covering critical behaviors]
+
+[Adjust the number and content to fit the issue. Low-complexity issues may
+have 2 checkpoints. High-complexity issues should have 3-5. Each checkpoint
+should produce code that compiles and does not break existing tests.]
+
 ## Acceptance Criteria
 
 - [ ] [Specific, testable condition -- use Given/When/Then where appropriate]
 - [ ] [Another condition]
-- [ ] Unit tests cover success and error paths
+- [ ] Unit tests cover success and error paths (2-8 focused tests)
 - [ ] All existing tests continue to pass
 
 ## Files to Create/Modify
@@ -246,6 +275,10 @@ Sub-issues are the atomic units of work. Each should be completable in a single 
 ## Implementation Notes
 
 [Architectural hints, patterns to follow, gotchas. Pull from TDD Section 6 (Key Implementation Decisions) and Section 8 (Risk Register) where relevant. Reference existing code patterns where helpful.]
+
+**Agent rules:** Read `.claude/CLAUDE.md` § Agent Execution Rules before
+starting. Key points: work in checkpoint order, commit after each, write
+2-8 tests max, run only your tests, stay in scope.
 ```
 
 **Labels:** Apply `type:*` and `complexity:*` labels.
