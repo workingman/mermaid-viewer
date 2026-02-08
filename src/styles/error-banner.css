@@ -1,1 +1,16 @@
 /* Error banner styles -- see TDD Section 4 ErrorBoundary */
+
+.error-banner {
+  background-color: #fff3cd;
+  color: #856404;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 8px 12px;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  opacity: 0.95;
+  pointer-events: none;
+}

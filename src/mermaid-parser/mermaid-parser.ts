@@ -1,6 +1,7 @@
 import mermaid from 'mermaid';
 import type { ParseResult } from '@shared/types';
 import { MermaidParseError } from '@shared/types';
+import { extract } from './graph-extractor';
 
 let renderCounter = 0;
 
@@ -40,15 +41,15 @@ async function renderSvg(mmdText: string): Promise<string> {
   }
 }
 
-export async function parse(mmdText: string): Promise<ParseResult> {
+export async function parse(mmdText: string, diagramType = 'flowchart'): Promise<ParseResult> {
   initMermaid();
   await validateSyntax(mmdText);
   const svg = await renderSvg(mmdText);
 
-  // Stub: return empty graph until GraphExtractor (#118) is wired in
-  return {
-    graph: { nodes: [], edges: [], diagramType: 'flowchart' },
-    nodeSvgFragments: new Map(),
-    passthroughSvg: svg,
-  };
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svg, 'image/svg+xml');
+  const svgEl = doc.documentElement;
+  const { graph, nodeSvgFragments } = extract(svgEl, diagramType);
+
+  return { graph, nodeSvgFragments, passthroughSvg: svg };
 }
