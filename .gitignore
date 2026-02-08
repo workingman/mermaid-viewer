@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Agent temp files
+.tmp/
+run.sh
+run2.sh
+run3.sh
+
+# Session artifacts (not project deliverables)
+SESSION_NOTES.md
+SESSION_STATE.mmd
+claude-sessions/
+agent-os

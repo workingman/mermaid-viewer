@@ -12,6 +12,97 @@ To guide an AI assistant in decomposing a Product Requirements Document (PRD) in
 - A completed PRD following the structure from `process/create-prd.md`
 - A completed TDD following the structure from `process/create-tdd.md`
 
+## Context Management
+
+Issue generation is the most context-intensive step in the process. Without
+explicit guardrails, quality degrades as cumulative output grows — sub-issues
+get assigned to the wrong parents, components get skipped entirely, and
+acceptance criteria become vague. The following rules are **hard constraints**,
+not suggestions.
+
+### Rule 1: One parent per invocation
+
+Each parent issue's sub-issues MUST be generated in a **separate agent
+invocation** (subagent, session, or conversation). Never generate sub-issues
+for multiple parents in a single context window.
+
+Why: The PRD + TDD already consume significant context. Adding the output of
+one parent's sub-issues leaves less room for the next parent's reasoning.
+Quality degrades predictably after ~12 cumulative sub-issues in a single
+context.
+
+### Rule 2: Maximum 5 sub-issues per invocation
+
+A single invocation MUST NOT generate more than **5 sub-issues**. If a parent
+requires more than 5 sub-issues:
+
+1. Generate the first batch (up to 5), create them in GitHub, and end.
+2. Start a new invocation for the same parent to generate the next batch.
+3. The second invocation receives the parent issue number and the numbers of
+   already-created sub-issues so it can avoid duplication and cover remaining
+   scope.
+
+Why: Each sub-issue is ~600-800 tokens of generated output. Beyond 5, the
+agent's working memory for cross-referencing against PRD/TDD requirements
+degrades, leading to missed components and vague acceptance criteria.
+
+### Rule 3: Scope fencing
+
+Each invocation receives an explicit scope assignment: one parent issue and its
+relevant PRD functional requirements and TDD sections. The agent MUST:
+
+- **Only create sub-issues for its assigned parent.** If a requirement belongs
+  to a different parent, note it as a cross-parent dependency in the sub-issue
+  body — do not create a sub-issue for it.
+- **Not assume knowledge of other parents' sub-issues.** Each invocation is
+  self-contained.
+
+### Rule 4: Self-validation before finishing
+
+Before ending, each invocation MUST run this checklist and report the results:
+
+1. **Parent AC coverage:** Every acceptance criterion on the parent issue maps
+   to at least one sub-issue.
+2. **PRD FR coverage:** Every PRD functional requirement in scope has at least
+   one sub-issue addressing it, including all acceptance criteria.
+3. **TDD component coverage:** Every TDD component, interface, and data model
+   in scope maps to at least one sub-issue.
+4. **TDD resolved decisions:** Every resolved Open Question in the TDD that
+   affects this parent's scope is reflected in a sub-issue's acceptance
+   criteria.
+5. **No orphaned scope:** No sub-issue covers work that belongs to a different
+   parent.
+6. **Uniqueness:** No two sub-issues cover the same work.
+
+If any check fails, the agent must fix the gap (create a missing sub-issue,
+move a misscoped one, add missing acceptance criteria) before finishing — as
+long as doing so stays within the 5-sub-issue cap for the current invocation.
+If the cap would be exceeded, report the gap for the next invocation to handle.
+
+### Invocation template
+
+When spawning a subagent for a parent issue, provide this context:
+
+```
+You are generating sub-issues for ONE parent issue.
+
+PARENT ISSUE: #<number> — <title>
+SCOPE: <list of PRD FR-xxx numbers and TDD sections assigned to this parent>
+
+INPUTS (read these files):
+- PRD: <path>
+- TDD: <path>
+- Parent issue: gh issue view <number>
+- Already-created sub-issues (if any): #<n1>, #<n2>, ...
+
+CONSTRAINTS:
+- Maximum 5 sub-issues in this invocation.
+- Only create sub-issues for THIS parent. Cross-parent needs are noted as
+  dependencies, not new sub-issues.
+- Run the self-validation checklist before finishing.
+- Follow the sub-issue body template from process/create-issues.md.
+```
+
 ## Label Setup
 
 Before first use, ensure these labels exist in the repository. Create any that are missing:
@@ -67,13 +158,21 @@ gh label create "phase:polish" --color "E6E6E6" --description "Polish: error han
 
 6.  **Wait for Confirmation:** Pause and wait for the user to confirm.
 
-7.  **Phase 2 -- Generate Sub-Issues and Create in GitHub:** Once confirmed, for each parent issue:
+7.  **Phase 2 -- Generate Sub-Issues and Create in GitHub:** Once confirmed:
 
-    a. Break it down into sub-issues (the atomic implementation tasks).
-    b. Create the parent issue using `gh issue create`.
-    c. Create each sub-issue using `gh issue create`.
-    d. Link sub-issues to their parent using the `gh api` sub-issues endpoint.
-    e. If the PRD specifies ordering constraints, set dependencies between issues using the `gh api` dependencies endpoint.
+    a. Create all parent issues first using `gh issue create`. Record their
+       issue numbers.
+    b. For each parent issue, spawn a **separate invocation** (subagent or
+       new session) to generate and create its sub-issues. Follow the Context
+       Management rules above — especially the 5-sub-issue cap, scope fencing,
+       and self-validation checklist.
+    c. Each invocation creates its sub-issues via `gh issue create` and links
+       them to the parent using the `gh api` sub-issues endpoint.
+    d. If the PRD specifies ordering constraints, set dependencies between
+       issues using the `gh api` dependencies endpoint.
+    e. If a parent requires more than 5 sub-issues, spawn additional
+       invocations for the same parent (passing already-created sub-issue
+       numbers to avoid duplication).
 
 8.  **Summary:** After all issues are created, present a summary table showing issue numbers, titles, parent-child relationships, and URLs.
 
@@ -267,11 +366,21 @@ Each issue must contain enough context to stand alone. Do not assume the reader 
 
 ## Final Instructions
 
-1. Do NOT begin implementation -- only create the issues
-2. Always wait for user confirmation before creating issues in GitHub
-3. Every sub-issue must have testable acceptance criteria
-4. Prefer fewer, well-scoped issues over many trivial ones
-5. Reference specific files from the TDD directory structure and existing code patterns in each issue
-6. Every sub-issue must include relevant interface contracts and data models from the TDD
-7. Every sub-issue must reference applicable implementation decisions and risk mitigations from the TDD
-8. After creating all issues, print a summary table with issue numbers and URLs
+1. Do NOT begin implementation — only create the issues.
+2. Always wait for user confirmation before creating issues in GitHub.
+3. **Never generate sub-issues for more than one parent in a single context
+   window.** See Context Management.
+4. **Never generate more than 5 sub-issues in a single invocation.** See
+   Context Management.
+5. **Run the self-validation checklist before finishing every invocation.** See
+   Context Management.
+6. Every sub-issue must have testable acceptance criteria.
+7. Prefer fewer, well-scoped issues over many trivial ones.
+8. Reference specific files from the TDD directory structure and existing code
+   patterns in each issue.
+9. Every sub-issue must include relevant interface contracts and data models
+   from the TDD.
+10. Every sub-issue must reference applicable implementation decisions and risk
+    mitigations from the TDD.
+11. After creating all issues, print a summary table with issue numbers and
+    URLs.
