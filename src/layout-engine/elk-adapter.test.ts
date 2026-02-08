@@ -92,6 +92,20 @@ describe('toElkGraph', () => {
     expect(elk.edges[0].labels).toBeUndefined();
   });
 
+  it('handles mixed hinted and unhinted nodes', () => {
+    const graph = makeGraph({
+      nodes: [
+        { id: 'A', label: 'A', shape: 'rect', width: 100, height: 50, svgFragment: '', hintX: 10, hintY: 20 },
+        { id: 'B', label: 'B', shape: 'rect', width: 80, height: 40, svgFragment: '' },
+      ],
+    });
+    const elk = toElkGraph(graph);
+    expect(elk.children[0].x).toBe(10);
+    expect(elk.children[0].layoutOptions?.['elk.position']).toBe('(10,20)');
+    expect(elk.children[1].x).toBeUndefined();
+    expect(elk.children[1].layoutOptions).toBeUndefined();
+  });
+
   it('sets root id and layout options', () => {
     const elk = toElkGraph(makeGraph());
     expect(elk.id).toBe('root');
