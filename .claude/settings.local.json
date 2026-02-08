@@ -1,0 +1,63 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:cli.github.com)",
+      "WebFetch(domain:github.blog)",
+      "WebFetch(domain:docs.github.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:kovyrin.net)",
+      "WebFetch(domain:addyosmani.com)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:www.builder.io)",
+      "WebFetch(domain:www.paulmduvall.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:martinfowler.com)",
+      "WebFetch(domain:www.thoughtworks.com)",
+      "WebFetch(domain:ghuntley.com)",
+      "Bash(bash run.sh:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git push:*)",
+      "Bash(git -C /Users/sam/dev/mmv:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh label:*)",
+      "Bash(gh api:*)",
+      "Bash(pnpm:*)",
+      "Bash(npx:*)",
+      "Bash(cargo:*)",
+      "Skill(wrap)",
+      "Bash(git:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/enforce-run-sh.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/log-subagent-stats.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
