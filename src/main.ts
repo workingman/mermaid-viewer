@@ -31,10 +31,16 @@ export interface FileChangedPayload {
 
 export function createWindowState(): WindowState {
   return {
-    filePath: null, sidecarPath: null,
-    lastGraph: null, lastLayout: null, lastSvg: null,
-    isEditing: false, isEditingAllowed: false,
-    renderInProgress: false, renderQueued: false, error: null,
+    filePath: null,
+    sidecarPath: null,
+    lastGraph: null,
+    lastLayout: null,
+    lastSvg: null,
+    isEditing: false,
+    isEditingAllowed: false,
+    renderInProgress: false,
+    renderQueued: false,
+    error: null,
   };
 }
 

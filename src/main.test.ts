@@ -61,9 +61,7 @@ vi.mock('@error/error-boundary', () => {
 
 function makeGraph(diagramType = 'flowchart'): ParsedGraph {
   return {
-    nodes: [
-      { id: 'A', label: 'A', shape: 'rect', width: 100, height: 50, svgFragment: '' },
-    ],
+    nodes: [{ id: 'A', label: 'A', shape: 'rect', width: 100, height: 50, svgFragment: '' }],
     edges: [],
     diagramType,
   };
@@ -141,13 +139,12 @@ describe('handleMmdChange', () => {
 
   it('sets error on parse failure and preserves last valid render', async () => {
     windowState.lastSvg = document.createElementNS(
-      'http://www.w3.org/2000/svg', 'svg',
+      'http://www.w3.org/2000/svg',
+      'svg',
     ) as SVGElement;
     const prevSvg = windowState.lastSvg;
     vi.mocked(invoke).mockResolvedValueOnce('bad content');
-    vi.mocked(parse).mockRejectedValueOnce(
-      new MermaidParseError('Syntax error'),
-    );
+    vi.mocked(parse).mockRejectedValueOnce(new MermaidParseError('Syntax error'));
     await handleMmdChange('/tmp/bad.mmd');
     expect(windowState.error).toBe('Syntax error');
     expect(windowState.lastSvg).toBe(prevSvg);

@@ -10,13 +10,48 @@ import type { ParsedGraph, ParsedEdge } from '@shared/types';
 
 function makeFlowchart(): { graph: ParsedGraph; fragments: Map<string, string> } {
   const nodes = [
-    { id: 'A', label: 'Start', shape: 'rect', width: 100, height: 50, svgFragment: '<rect width="100" height="50"/>' },
-    { id: 'B', label: 'Process', shape: 'rect', width: 100, height: 50, svgFragment: '<rect width="100" height="50"/>' },
-    { id: 'C', label: 'End', shape: 'rect', width: 100, height: 50, svgFragment: '<rect width="100" height="50"/>' },
+    {
+      id: 'A',
+      label: 'Start',
+      shape: 'rect',
+      width: 100,
+      height: 50,
+      svgFragment: '<rect width="100" height="50"/>',
+    },
+    {
+      id: 'B',
+      label: 'Process',
+      shape: 'rect',
+      width: 100,
+      height: 50,
+      svgFragment: '<rect width="100" height="50"/>',
+    },
+    {
+      id: 'C',
+      label: 'End',
+      shape: 'rect',
+      width: 100,
+      height: 50,
+      svgFragment: '<rect width="100" height="50"/>',
+    },
   ];
   const edges: ParsedEdge[] = [
-    { id: 'A->B:0', sourceId: 'A', targetId: 'B', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
-    { id: 'B->C:0', sourceId: 'B', targetId: 'C', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
+    {
+      id: 'A->B:0',
+      sourceId: 'A',
+      targetId: 'B',
+      label: null,
+      arrowType: 'arrow_point',
+      lineStyle: 'solid',
+    },
+    {
+      id: 'B->C:0',
+      sourceId: 'B',
+      targetId: 'C',
+      label: null,
+      arrowType: 'arrow_point',
+      lineStyle: 'solid',
+    },
   ];
   const graph: ParsedGraph = { nodes, edges, diagramType: 'flowchart' };
   const fragments = new Map(nodes.map((n) => [n.id, n.svgFragment]));
@@ -87,13 +122,48 @@ describe('render pipeline integration', () => {
 
   it('handles class diagram with correct node and edge counts', async () => {
     const nodes = [
-      { id: 'Animal', label: 'Animal', shape: 'rect', width: 120, height: 60, svgFragment: '<rect width="120" height="60"/>' },
-      { id: 'Dog', label: 'Dog', shape: 'rect', width: 120, height: 60, svgFragment: '<rect width="120" height="60"/>' },
-      { id: 'Cat', label: 'Cat', shape: 'rect', width: 120, height: 60, svgFragment: '<rect width="120" height="60"/>' },
+      {
+        id: 'Animal',
+        label: 'Animal',
+        shape: 'rect',
+        width: 120,
+        height: 60,
+        svgFragment: '<rect width="120" height="60"/>',
+      },
+      {
+        id: 'Dog',
+        label: 'Dog',
+        shape: 'rect',
+        width: 120,
+        height: 60,
+        svgFragment: '<rect width="120" height="60"/>',
+      },
+      {
+        id: 'Cat',
+        label: 'Cat',
+        shape: 'rect',
+        width: 120,
+        height: 60,
+        svgFragment: '<rect width="120" height="60"/>',
+      },
     ];
     const edges: ParsedEdge[] = [
-      { id: 'Animal->Dog:0', sourceId: 'Animal', targetId: 'Dog', label: 'extends', arrowType: 'arrow_point', lineStyle: 'solid' },
-      { id: 'Animal->Cat:0', sourceId: 'Animal', targetId: 'Cat', label: 'extends', arrowType: 'arrow_point', lineStyle: 'solid' },
+      {
+        id: 'Animal->Dog:0',
+        sourceId: 'Animal',
+        targetId: 'Dog',
+        label: 'extends',
+        arrowType: 'arrow_point',
+        lineStyle: 'solid',
+      },
+      {
+        id: 'Animal->Cat:0',
+        sourceId: 'Animal',
+        targetId: 'Cat',
+        label: 'extends',
+        arrowType: 'arrow_point',
+        lineStyle: 'solid',
+      },
     ];
     const graph: ParsedGraph = { nodes, edges, diagramType: 'classDiagram' };
     const fragments = new Map(nodes.map((n) => [n.id, n.svgFragment]));
@@ -107,9 +177,7 @@ describe('render pipeline integration', () => {
 
   it('passes sidecar hints through merge into layout', async () => {
     const { graph } = makeFlowchart();
-    const sidecar = loadSidecar(
-      JSON.stringify({ version: 1, nodes: { A: { x: 50, y: 10 } } }),
-    );
+    const sidecar = loadSidecar(JSON.stringify({ version: 1, nodes: { A: { x: 50, y: 10 } } }));
     const merged = mergeSidecarIntoGraph(graph, sidecar);
     const hintedNode = merged.nodes.find((n) => n.id === 'A');
     expect(hintedNode!.hintX).toBe(50);

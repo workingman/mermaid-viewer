@@ -27,9 +27,30 @@ function makeFourNodeGraph(): ParsedGraph {
   return {
     nodes: [makeNode('A'), makeNode('B'), makeNode('C'), makeNode('D')],
     edges: [
-      { id: 'A->B:0', sourceId: 'A', targetId: 'B', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
-      { id: 'B->C:0', sourceId: 'B', targetId: 'C', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
-      { id: 'C->D:0', sourceId: 'C', targetId: 'D', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
+      {
+        id: 'A->B:0',
+        sourceId: 'A',
+        targetId: 'B',
+        label: null,
+        arrowType: 'arrow_point',
+        lineStyle: 'solid',
+      },
+      {
+        id: 'B->C:0',
+        sourceId: 'B',
+        targetId: 'C',
+        label: null,
+        arrowType: 'arrow_point',
+        lineStyle: 'solid',
+      },
+      {
+        id: 'C->D:0',
+        sourceId: 'C',
+        targetId: 'D',
+        label: null,
+        arrowType: 'arrow_point',
+        lineStyle: 'solid',
+      },
     ],
     diagramType: 'flowchart',
   };
