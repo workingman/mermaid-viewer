@@ -72,6 +72,7 @@ function makeGraph(diagramType = 'flowchart'): ParsedGraph {
 const { invoke } = await import('@tauri-apps/api/core');
 const { parse } = await import('@mermaid-parser/mermaid-parser');
 const { loadSidecar } = await import('@sidecar/sidecar-manager');
+const { computeLayout } = await import('@layout-engine/layout-engine');
 const {
   windowState,
   renderDeps,
@@ -87,6 +88,7 @@ beforeEach(() => {
   renderDeps.cachedFragments = new Map();
   renderDeps.cachedEdges = [];
   renderDeps.sidecar = null;
+  renderDeps.passthroughSvg = null;
   vi.clearAllMocks();
   document.body.innerHTML = '<div id="app"></div>';
 });
@@ -211,5 +213,46 @@ describe('pipeline sequencing', () => {
     windowState.renderInProgress = true;
     await renderPipeline();
     expect(windowState.renderQueued).toBe(true);
+  });
+});
+
+describe('diagram type routing', () => {
+  it('uses ELK pipeline for flowchart', async () => {
+    windowState.lastGraph = makeGraph('flowchart');
+    await renderPipeline();
+    expect(vi.mocked(computeLayout)).toHaveBeenCalled();
+  });
+
+  it('skips ELK for sequence diagram and uses passthrough', async () => {
+    windowState.lastGraph = makeGraph('sequenceDiagram');
+    renderDeps.passthroughSvg = '<svg><text>seq</text></svg>';
+    await renderPipeline();
+    expect(vi.mocked(computeLayout)).not.toHaveBeenCalled();
+    const container = document.getElementById('app')!;
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
+
+  it('sets isEditingAllowed false for non-graph types', async () => {
+    const graph = makeGraph('sequenceDiagram');
+    vi.mocked(invoke).mockResolvedValueOnce('sequenceDiagram\n  A->>B: msg');
+    vi.mocked(parse).mockResolvedValueOnce({
+      graph,
+      nodeSvgFragments: new Map(),
+      passthroughSvg: '<svg></svg>',
+    });
+    await handleMmdChange('/tmp/seq.mmd');
+    expect(windowState.isEditingAllowed).toBe(false);
+  });
+
+  it('does not load sidecar for non-graph types', async () => {
+    const graph = makeGraph('pie');
+    vi.mocked(invoke).mockResolvedValueOnce('pie\n  "A": 50');
+    vi.mocked(parse).mockResolvedValueOnce({
+      graph,
+      nodeSvgFragments: new Map(),
+      passthroughSvg: '<svg></svg>',
+    });
+    await handleMmdChange('/tmp/pie.mmd');
+    expect(renderDeps.sidecar).toBeNull();
   });
 });

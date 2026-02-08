@@ -43,6 +43,7 @@ export const renderDeps = {
   cachedFragments: new Map<string, string>(),
   cachedEdges: [] as ParsedEdge[],
   sidecar: null as SidecarData | null,
+  passthroughSvg: null as string | null,
 };
 
 let errorBoundary: ErrorBoundary | null = null;
@@ -74,7 +75,10 @@ export async function renderPipeline(): Promise<void> {
 
 async function executeRender(): Promise<void> {
   const graph = windowState.lastGraph!;
-  if (!isGraphDiagram(graph.diagramType)) return;
+  if (!isGraphDiagram(graph.diagramType)) {
+    displayPassthrough();
+    return;
+  }
   const merged = mergeSidecarIntoGraph(graph, renderDeps.sidecar);
   const layout = await computeLayout(merged);
   windowState.lastLayout = layout;
@@ -83,6 +87,15 @@ async function executeRender(): Promise<void> {
   windowState.lastSvg = svg;
   windowState.error = null;
   getErrorBoundary().handleRenderSuccess(svg);
+}
+
+function displayPassthrough(): void {
+  if (!renderDeps.passthroughSvg) return;
+  const container = document.getElementById('app');
+  if (!container) return;
+  container.innerHTML = renderDeps.passthroughSvg;
+  const svg = container.querySelector('svg') as SVGElement | null;
+  windowState.lastSvg = svg;
 }
 
 function displaySvg(svg: SVGSVGElement): void {
@@ -112,6 +125,7 @@ export async function handleMmdChange(path: string): Promise<void> {
     windowState.isEditingAllowed = isGraphDiagram(result.graph.diagramType);
     renderDeps.cachedFragments = result.nodeSvgFragments;
     renderDeps.cachedEdges = result.graph.edges;
+    renderDeps.passthroughSvg = result.passthroughSvg ?? null;
     renderDeps.sidecar = windowState.isEditingAllowed ? await readSidecar(path) : null;
     await renderPipeline();
   } catch (err) {
