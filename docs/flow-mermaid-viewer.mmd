@@ -1,0 +1,31 @@
+graph TD
+    A[User double-clicks .mmd file in Finder] --> B{App running?}
+    B -->|No| C[App launches]
+    B -->|Yes| D[App comes to foreground]
+    C --> E[Load .mmd file]
+    D --> E
+
+    E --> F{Valid Mermaid syntax?}
+    F -->|Yes| G[Render diagram]
+    F -->|No| H{Previous valid render exists?}
+    H -->|Yes| I[Show last valid render + error indicator]
+    H -->|No| J[Show error message inline]
+
+    G --> K{Sidecar file exists?}
+    K -->|Yes| L[Apply layout hints from sidecar]
+    K -->|No| M[Use auto-layout]
+    L --> N[Display diagram in Viewing Mode]
+    M --> N
+
+    N --> O{File change detected?}
+    O -->|.mmd changed| E
+    O -->|Sidecar changed| K
+
+    N --> P{User toggles editing mode?}
+    P -->|Yes| Q[Enter Layout Editing Mode]
+    Q --> R[User drags nodes]
+    R --> S[Arrows re-route in real time]
+    S --> T[Save positions to sidecar file]
+    T --> Q
+
+    P -->|No| N

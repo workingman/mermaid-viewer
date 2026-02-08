@@ -9,7 +9,7 @@ To guide an AI assistant in decomposing a Product Requirements Document (PRD) in
 - The `gh` CLI is authenticated (`gh auth status` succeeds)
 - The working directory is a git repository linked to a GitHub remote
 - Required labels exist in the repository (see Label Setup below)
-- The PRD follows the structure defined in `create-prd.md`
+- The PRD follows the structure defined in `process/create-prd.md`
 
 ## Label Setup
 
@@ -84,7 +84,7 @@ Parent issues represent a major phase or functional area. They are tracking cont
 
 [2-3 sentences: what this phase accomplishes and why it matters. Reference the PRD file path.]
 
-**PRD:** `tasks/NNNN-prd-feature-name.md`
+**PRD:** `docs/prd-feature-name.md`
 
 ## Sub-Issues
 
@@ -170,7 +170,7 @@ gh issue create \
 
 Description here.
 
-**PRD:** `tasks/NNNN-prd-feature-name.md`
+**PRD:** `docs/prd-feature-name.md`
 
 ## Acceptance Criteria
 

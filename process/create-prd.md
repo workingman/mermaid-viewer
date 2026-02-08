@@ -15,9 +15,9 @@ The PRD must serve two distinct purposes:
     * **The "Why":** "What specific evidence do we have that this is a problem?"
     * **Non-Goals:** "What are we explicitly NOT building?"
     * **Trade-offs:** "Speed vs. Quality? Quick hack vs. Platform investment?"
-3.  **Generate Files:**
-    * `[n]-prd-[feature-name].md` (The Requirement Doc)
-    * `[n]-flow-[feature-name].mmd` (The Visual Flow)
+3.  **Generate Files** in `docs/`:
+    * `prd-[feature-name].md` (The Requirement Doc)
+    * `flow-[feature-name].mmd` (The Visual Flow)
 
 ## PRD Structure (File 1)
 
@@ -55,8 +55,8 @@ Clearly state what this feature will *not* include.
 * *Invalid:* "Use React and Redux." (Leave this for the TDD).
 
 ### 6. Design & Visuals
-Reference the companion Mermaid file (`[n]-flow-[feature-name].mmd`). Describe the primary UI states here if necessary.
+Reference the companion Mermaid file (`flow-[feature-name].mmd`). Describe the primary UI states here if necessary.
 
 ## Mermaid Diagram (File 2)
-Create a separate file named `[n]-flow-[feature-name].mmd`.
+Create a separate file named `flow-[feature-name].mmd`.
 * **Content:** A `graph TD` or `sequenceDiagram` representing the **User Flow**.

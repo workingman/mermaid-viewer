@@ -1,0 +1,68 @@
+graph TD
+    subgraph Native["Rust / Tauri Native Layer"]
+        WM[WindowManager<br/>Multi-window creation<br/>Finder open-file events<br/>80% screen sizing]
+        FW[FileWatcher<br/>FSEvents monitoring<br/>100ms debounce]
+        FIO[FileIO<br/>read_file<br/>write_sidecar<br/>atomic writes]
+    end
+
+    subgraph WebView["WebView Layer (per window)"]
+        Main[main.ts<br/>Orchestration<br/>Event listeners<br/>Window state]
+
+        subgraph ParsePipeline["Parse Pipeline"]
+            MP[MermaidParser<br/>Syntax validation<br/>SVG rendering]
+            GE[GraphExtractor<br/>DOM query for<br/>nodes + edges]
+        end
+
+        subgraph LayoutPipeline["Layout Pipeline"]
+            SM[SidecarManager<br/>Load / merge / build<br/>sidecar JSON]
+            LE[LayoutEngine<br/>elkjs wrapper<br/>Orthogonal routing]
+        end
+
+        subgraph RenderPipeline["Render Pipeline"]
+            SC[SvgCompositor<br/>Node placement<br/>Edge path construction]
+            CD[CrossingDetector<br/>Segment intersection<br/>computation]
+            ER[EdgeRenderer<br/>Rounded corners<br/>Crossing gaps/bridges]
+        end
+
+        subgraph Interaction["Interaction Layer"]
+            EC[EditController<br/>Drag handling<br/>Alignment guides]
+            VC[ViewportController<br/>Pan / Zoom<br/>Fit-to-content]
+            EB[ErrorBoundary<br/>Render caching<br/>Error banner]
+        end
+    end
+
+    subgraph Disk["File System"]
+        MMD[".mmd file<br/>(read only)"]
+        SID[".mmd.layout.json<br/>(read/write)"]
+    end
+
+    Finder["macOS Finder<br/>double-click .mmd"] --> WM
+    WM -->|"window-file-opened<br/>(Tauri event)"| Main
+    FW -->|"file-changed<br/>(Tauri event)"| Main
+    FIO -->|"Tauri IPC<br/>(invoke/response)"| Main
+
+    Main --> MP
+    MP --> GE
+    GE -->|"ParsedGraph +<br/>SVG fragments"| Main
+
+    Main --> SM
+    SM -->|"MergedGraph"| LE
+    LE -->|"LayoutResult:<br/>positions + routes"| Main
+
+    Main --> SC
+    SC --> CD
+    CD -->|"EdgeCrossing[]"| ER
+    ER -->|"SVG path elements"| SC
+    SC -->|"Final SVG"| Main
+
+    Main --> VC
+    Main --> EB
+    Main --> EC
+
+    EC -->|"Updated positions<br/>(on drag end)"| SM
+    SM -->|"write_sidecar"| FIO
+
+    FIO --> MMD
+    FIO --> SID
+    FW -.->|"watches"| MMD
+    FW -.->|"watches"| SID
