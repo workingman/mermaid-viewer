@@ -2,9 +2,10 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from 'vitest';
-import { mergeSidecarIntoGraph } from '@sidecar/sidecar-manager';
+import { loadSidecar, mergeSidecarIntoGraph } from '@sidecar/sidecar-manager';
 import { computeLayout } from '@layout-engine/layout-engine';
 import { compose } from '@svg-compositor/svg-compositor';
+import { isGraphDiagram } from '@shared/constants';
 import type { ParsedGraph, ParsedEdge } from '@shared/types';
 
 function makeFlowchart(): { graph: ParsedGraph; fragments: Map<string, string> } {
@@ -102,5 +103,32 @@ describe('render pipeline integration', () => {
     expect(layout.positionedNodes).toHaveLength(3);
     expect(layout.routedEdges).toHaveLength(2);
     expect(svg.querySelector('.node-layer')!.children).toHaveLength(3);
+  });
+
+  it('passes sidecar hints through merge into layout', async () => {
+    const { graph } = makeFlowchart();
+    const sidecar = loadSidecar(
+      JSON.stringify({ version: 1, nodes: { A: { x: 50, y: 10 } } }),
+    );
+    const merged = mergeSidecarIntoGraph(graph, sidecar);
+    const hintedNode = merged.nodes.find((n) => n.id === 'A');
+    expect(hintedNode!.hintX).toBe(50);
+    expect(hintedNode!.hintY).toBe(10);
+    const unhintedNode = merged.nodes.find((n) => n.id === 'B');
+    expect(unhintedNode!.hintX).toBeUndefined();
+  });
+});
+
+describe('non-graph passthrough', () => {
+  it('identifies sequenceDiagram as non-graph type', () => {
+    expect(isGraphDiagram('sequenceDiagram')).toBe(false);
+  });
+
+  it('identifies pie as non-graph type', () => {
+    expect(isGraphDiagram('pie')).toBe(false);
+  });
+
+  it('identifies flowchart as graph type', () => {
+    expect(isGraphDiagram('flowchart')).toBe(true);
   });
 });

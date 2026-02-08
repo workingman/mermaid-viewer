@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { loadSidecar, mergeSidecarIntoGraph } from '@sidecar/sidecar-manager';
-import type { ParsedGraph } from '@shared/types';
+import type { ParsedGraph, ParsedNode } from '@shared/types';
+
+function makeNode(id: string): ParsedNode {
+  return { id, label: id, shape: 'rect', width: 100, height: 50, svgFragment: '' };
+}
 
 function makeGraph(): ParsedGraph {
   return {
-    nodes: [
-      { id: 'A', label: 'A', shape: 'rect', width: 100, height: 50, svgFragment: '' },
-      { id: 'B', label: 'B', shape: 'rect', width: 80, height: 40, svgFragment: '' },
-    ],
+    nodes: [makeNode('A'), makeNode('B')],
     edges: [
       {
         id: 'e1',
@@ -17,6 +18,18 @@ function makeGraph(): ParsedGraph {
         arrowType: 'arrow_point',
         lineStyle: 'solid',
       },
+    ],
+    diagramType: 'flowchart',
+  };
+}
+
+function makeFourNodeGraph(): ParsedGraph {
+  return {
+    nodes: [makeNode('A'), makeNode('B'), makeNode('C'), makeNode('D')],
+    edges: [
+      { id: 'A->B:0', sourceId: 'A', targetId: 'B', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
+      { id: 'B->C:0', sourceId: 'B', targetId: 'C', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
+      { id: 'C->D:0', sourceId: 'C', targetId: 'D', label: null, arrowType: 'arrow_point', lineStyle: 'solid' },
     ],
     diagramType: 'flowchart',
   };
@@ -60,5 +73,27 @@ describe('sidecar merge integration', () => {
     const merged = mergeSidecarIntoGraph(makeGraph(), loadSidecar(json));
     expect(merged.nodes[0].hintX).toBe(10);
     expect(merged.nodes[1].hintX).toBe(30);
+  });
+
+  it('applies partial sidecar hints to 2 of 4 nodes', () => {
+    const json = JSON.stringify({
+      version: 1,
+      nodes: { A: { x: 10, y: 20 }, C: { x: 50, y: 60 } },
+    });
+    const merged = mergeSidecarIntoGraph(makeFourNodeGraph(), loadSidecar(json));
+    expect(merged.nodes[0].hintX).toBe(10);
+    expect(merged.nodes[1].hintX).toBeUndefined();
+    expect(merged.nodes[2].hintX).toBe(50);
+    expect(merged.nodes[3].hintX).toBeUndefined();
+  });
+
+  it('silently ignores orphaned sidecar entries', () => {
+    const json = JSON.stringify({
+      version: 1,
+      nodes: { A: { x: 10, y: 20 }, Z: { x: 99, y: 99 } },
+    });
+    const merged = mergeSidecarIntoGraph(makeGraph(), loadSidecar(json));
+    expect(merged.nodes[0].hintX).toBe(10);
+    expect(merged.nodes).toHaveLength(2);
   });
 });
