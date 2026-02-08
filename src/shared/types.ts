@@ -115,6 +115,22 @@ export interface ELKLayoutResult {
   edges: RoutedEdge[];
 }
 
+// Viewport types
+
+export interface ViewportState {
+  zoom: number;
+  panX: number;
+  panY: number;
+  contentBounds: { x: number; y: number; width: number; height: number };
+}
+
+export interface ViewportRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 // Parse pipeline types
 
 export interface ParseResult {
