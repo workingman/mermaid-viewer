@@ -79,19 +79,6 @@ impl WindowManager {
             map.insert(path.clone(), label.to_string());
         }
     }
-
-    pub fn remove(&self, label: &str) {
-        if let Ok(mut map) = self.windows.lock() {
-            map.retain(|_, v| v != label);
-        }
-    }
-
-    pub fn window_count(&self) -> usize {
-        self.windows
-            .lock()
-            .map(|m| m.len())
-            .unwrap_or(0)
-    }
 }
 
 fn focus_window(app_handle: &AppHandle, label: &str) {
@@ -135,20 +122,6 @@ fn emit_opened(
     let _ = app_handle.emit("window-file-opened", payload);
 }
 
-pub fn size_from_dimensions(
-    width: u32,
-    height: u32,
-) -> (f64, f64) {
-    (
-        width as f64 * MONITOR_RATIO,
-        height as f64 * MONITOR_RATIO,
-    )
-}
-
-pub fn fallback_size() -> (f64, f64) {
-    (DEFAULT_WIDTH, DEFAULT_HEIGHT)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -174,29 +147,6 @@ mod tests {
         let wm = WindowManager::default();
         let path = PathBuf::from("/tmp/unknown.mmd");
         assert_eq!(wm.find_existing(&path), None);
-    }
-
-    #[test]
-    fn remove_clears_entry() {
-        let wm = WindowManager::default();
-        let path = PathBuf::from("/tmp/test.mmd");
-        wm.track(&path, "doc-0");
-        wm.remove("doc-0");
-        assert_eq!(wm.find_existing(&path), None);
-    }
-
-    #[test]
-    fn size_from_dimensions_applies_ratio() {
-        let (w, h) = size_from_dimensions(1920, 1080);
-        assert!((w - 1536.0).abs() < 0.01);
-        assert!((h - 864.0).abs() < 0.01);
-    }
-
-    #[test]
-    fn fallback_size_returns_defaults() {
-        let (w, h) = fallback_size();
-        assert!((w - 1024.0).abs() < 0.01);
-        assert!((h - 768.0).abs() < 0.01);
     }
 
     #[test]
