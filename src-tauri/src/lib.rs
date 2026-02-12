@@ -5,7 +5,7 @@ mod windows;
 use commands::file_io::WriteLockState;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
-use tauri::Manager;
+use tauri::{Manager, State};
 use watchers::file_watcher::{self, FileWatcher};
 use windows::window_manager::WindowManager;
 
@@ -32,6 +32,7 @@ fn build_app() -> Result<tauri::App, tauri::Error> {
             commands::file_io::get_sidecar_path,
             commands::file_io::read_file,
             commands::file_io::write_sidecar,
+            get_initial_file,
         ])
         .build(tauri::generate_context!())
 }
@@ -43,6 +44,16 @@ fn create_file_watcher(
     let handle = app.handle().clone();
     file_watcher::create_watcher(handle, write_lock)
         .map_err(Into::into)
+}
+
+#[tauri::command]
+fn get_initial_file(
+    label: String,
+    wm: State<'_, Mutex<WindowManager>>,
+) -> Option<String> {
+    let mgr = wm.lock().ok()?;
+    let path = mgr.take_pending_file(&label)?;
+    Some(path.to_string_lossy().into_owned())
 }
 
 fn handle_run_event(

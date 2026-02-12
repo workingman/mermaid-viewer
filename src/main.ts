@@ -1,6 +1,7 @@
 import './styles/main.css';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { parse } from '@mermaid-parser/mermaid-parser';
 import { loadSidecar, mergeSidecarIntoGraph } from '@sidecar/sidecar-manager';
 import { computeLayout } from '@layout-engine/layout-engine';
@@ -177,3 +178,13 @@ listen<FileChangedPayload>('file-changed', (event) => {
 listen<{ path: string }>('window-file-opened', (event) => {
   onWindowFileOpened(event.payload.path).catch(console.error);
 });
+
+async function loadInitialFile(): Promise<void> {
+  const label = getCurrentWebviewWindow().label;
+  const path = await invoke<string | null>('get_initial_file', { label });
+  if (path) {
+    await onWindowFileOpened(path);
+  }
+}
+
+loadInitialFile().catch(console.error);

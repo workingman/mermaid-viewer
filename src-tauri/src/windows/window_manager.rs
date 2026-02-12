@@ -11,6 +11,7 @@ const MONITOR_RATIO: f64 = 0.8;
 
 pub struct WindowManager {
     windows: Mutex<HashMap<PathBuf, String>>,
+    pending_files: Mutex<HashMap<String, PathBuf>>,
     counter: AtomicU32,
 }
 
@@ -24,6 +25,7 @@ impl Default for WindowManager {
     fn default() -> Self {
         Self {
             windows: Mutex::new(HashMap::new()),
+            pending_files: Mutex::new(HashMap::new()),
             counter: AtomicU32::new(0),
         }
     }
@@ -64,6 +66,7 @@ impl WindowManager {
         .center()
         .build()
         .ok()?;
+        self.store_pending(&label, &file_path);
         emit_opened(app_handle, &file_path, &label);
         self.track(&file_path, &label);
         Some(label)
@@ -72,6 +75,17 @@ impl WindowManager {
     fn next_label(&self) -> String {
         let n = self.counter.fetch_add(1, Ordering::Relaxed);
         format!("doc-{n}")
+    }
+
+    fn store_pending(&self, label: &str, path: &PathBuf) {
+        if let Ok(mut map) = self.pending_files.lock() {
+            map.insert(label.to_string(), path.clone());
+        }
+    }
+
+    pub fn take_pending_file(&self, label: &str) -> Option<PathBuf> {
+        let mut map = self.pending_files.lock().ok()?;
+        map.remove(label)
     }
 
     fn track(&self, path: &PathBuf, label: &str) {
@@ -153,5 +167,28 @@ mod tests {
     fn window_title_from_path() {
         let path = PathBuf::from("/Users/dev/diagram.mmd");
         assert_eq!(window_title(&path), "diagram.mmd");
+    }
+
+    #[test]
+    fn store_and_take_pending_file() {
+        let wm = WindowManager::default();
+        let path = PathBuf::from("/tmp/test.mmd");
+        wm.store_pending("doc-0", &path);
+        assert_eq!(wm.take_pending_file("doc-0"), Some(path));
+    }
+
+    #[test]
+    fn take_pending_file_returns_none_when_empty() {
+        let wm = WindowManager::default();
+        assert_eq!(wm.take_pending_file("doc-0"), None);
+    }
+
+    #[test]
+    fn take_pending_file_removes_entry() {
+        let wm = WindowManager::default();
+        let path = PathBuf::from("/tmp/test.mmd");
+        wm.store_pending("doc-0", &path);
+        wm.take_pending_file("doc-0");
+        assert_eq!(wm.take_pending_file("doc-0"), None);
     }
 }
