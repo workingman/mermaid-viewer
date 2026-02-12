@@ -14,7 +14,6 @@ function nextRenderId(): string {
 function initMermaid(): void {
   mermaid.initialize({
     startOnLoad: false,
-    suppressErrors: true,
   });
 }
 

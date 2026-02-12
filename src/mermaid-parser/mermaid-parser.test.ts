@@ -48,7 +48,6 @@ describe('parse', () => {
     await parse('graph TD; A-->B');
     expect(mermaid.initialize).toHaveBeenCalledWith({
       startOnLoad: false,
-      suppressErrors: true,
     });
   });
 
