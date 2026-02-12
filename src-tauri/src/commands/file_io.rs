@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use tauri::State;
@@ -43,14 +43,17 @@ pub fn read_file(path: String) -> Result<String, FileIOError> {
 pub fn write_sidecar(
     path: String,
     content: String,
-    state: State<'_, WriteLockState>,
+    state: State<'_, Arc<WriteLockState>>,
 ) -> Result<(), FileIOError> {
     let dest = PathBuf::from(&path);
     lock_path(&state, &dest);
     write_atomic(&dest, &content)
 }
 
-fn lock_path(state: &State<'_, WriteLockState>, dest: &PathBuf) {
+fn lock_path(
+    state: &State<'_, Arc<WriteLockState>>,
+    dest: &PathBuf,
+) {
     if let Ok(mut set) = state.lock() {
         set.insert(dest.clone());
     }
