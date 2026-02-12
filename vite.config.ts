@@ -42,6 +42,11 @@ export default defineConfig(async () => ({
     },
   },
 
+  // Desktop app bundles Mermaid.js; large chunks are expected
+  build: {
+    chunkSizeWarningLimit: 2000,
+  },
+
   test: {
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
   },

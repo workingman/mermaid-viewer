@@ -1,3 +1,6 @@
+@import './error-banner.css';
+@import './edit-mode.css';
+
 :root {
   --edge-corner-radius: 6px;
   --edge-crossing-gap: 10px;
@@ -30,6 +33,3 @@ body {
   background: transparent;
   border: none;
 }
-
-@import './error-banner.css';
-@import './edit-mode.css';
