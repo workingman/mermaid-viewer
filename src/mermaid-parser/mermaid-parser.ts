@@ -51,8 +51,11 @@ function emptyResult(diagramType: string, svg: string): ParseResult {
 
 function extractGraph(svg: string, diagramType: string): ParseResult {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(svg, 'image/svg+xml');
-  const svgEl = doc.documentElement;
+  const doc = parser.parseFromString(svg, 'text/html');
+  const svgEl = doc.querySelector('svg');
+  if (!svgEl) {
+    return emptyResult(diagramType, svg);
+  }
   const { graph, nodeSvgFragments } = extract(svgEl, diagramType);
   return { graph, nodeSvgFragments, passthroughSvg: svg };
 }
