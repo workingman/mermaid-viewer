@@ -84,7 +84,7 @@ fn watch_file_pair(
     app_handle: &tauri::AppHandle,
     path: &std::path::Path,
 ) {
-    let fw = app_handle.state::<FileWatcherState>();
+    let Some(fw) = app_handle.try_state::<FileWatcherState>() else { return };
     let sidecar = sidecar_path(path);
     let Ok(mut w) = fw.lock() else { return };
     let _ = w.watch(path.to_path_buf());
