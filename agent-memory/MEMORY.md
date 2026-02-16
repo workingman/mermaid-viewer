@@ -48,10 +48,19 @@ Process should work for solo projects and scale to multi-person systems.
 - Tweet for run.sh Claude Code tip ready: `.tmp/tweet-run-sh.md`
 
 ## Process Pipeline
+
+**Greenfield (current):**
 ```
 ideation → create-prd.md → create-tdd.md → create-issues.md → execute-issues.md → first-run-qa.md
                                                                                          ↑
                                                                                    (RENDER layer active)
+```
+
+**Brownfield (planned - MAINTENANCE/EVOLVE layers):**
+```
+bug report / feature request → create-prd.md → create-tdd.md → create-issues.md → execute-issues.md → first-run-qa.md
+                                                                                                             ↓
+                                                                                                      (back to production)
 ```
 
 ## Artifacts Status
@@ -86,6 +95,13 @@ ideation → create-prd.md → create-tdd.md → create-issues.md → execute-is
 - [ ] Fix invisible SVG output (RENDER blocker — see render-debug-plan.md)
 - [ ] Complete RENDER checklist (blocked by webview issue)
 - [x] Split create-issues.md into create + execute prompts (execute-issues.md v1 done)
+- [ ] **MAINTENANCE and EVOLVE layers** — extend process to support brownfield development
+  - MAINTENANCE: bug fixes in existing codebases
+  - EVOLVE: feature development in existing codebases
+  - Both should reuse create-prd.md + create-tdd.md specification process
+  - Then flow into create-issues.md → execute-issues.md → first-run-qa.md
+  - mmv transitions from greenfield to brownfield once we hit MVP
+  - Goal: plug process into any existing codebase and start iterating
 - [ ] Process flow mermaid diagram (full pipeline)
 - [ ] Investigate parallel BUILD+BOOT (after linear validated)
 - [ ] Agent memory visibility: analyze what to expose to team
