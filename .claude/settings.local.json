@@ -25,7 +25,8 @@
       "Bash(pnpm:*)",
       "Bash(npx:*)",
       "Bash(cargo:*)",
-      "Skill(wrap)"
+      "Skill(wrap)",
+      "WebFetch(domain:apps.apple.com)"
     ]
   }
 }

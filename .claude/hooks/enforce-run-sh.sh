@@ -1,38 +1,35 @@
 #!/bin/bash
-# PreToolUse hook for Bash: block multi-line commands that don't use run.sh.
-# Multi-line ad hoc scripts must be written to .tmp/agent-*.sh via the Write
-# tool and executed with `bash run.sh <script>`.
+# PreToolUse hook for Bash: enforce the run.sh pattern.
+#
+# Decisions:
+#   approve  — `bash run.sh ...` or single-line commands
+#   deny     — anything multi-line (must use Write + run.sh)
+#
+# A no-op exit (exit 0 without JSON) means "no opinion" and still triggers
+# Claude Code's normal permission prompt.  Every path here emits an explicit
+# decision so nothing falls through.
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
-
-# Count newlines in the command
 NEWLINE_COUNT=$(echo "$COMMAND" | wc -l)
 
-# Allow single-line commands (no newlines)
-if [ "$NEWLINE_COUNT" -le 1 ]; then
-  exit 0
-fi
+decide() {
+  jq -n \
+    --arg decision "$1" \
+    --arg reason   "$2" \
+    '{
+      hookSpecificOutput: {
+        hookEventName:            "PreToolUse",
+        permissionDecision:       $decision,
+        permissionDecisionReason: $reason
+      }
+    }'
+}
 
-# Allow if the entire command is just `bash run.sh ...`
 if echo "$COMMAND" | grep -qE '^bash run\.sh '; then
-  exit 0
+  decide allow "Command uses run.sh dispatcher"
+elif [ "$NEWLINE_COUNT" -le 1 ]; then
+  decide allow "Single-line command"
+else
+  decide deny "BLOCKED: Multi-line Bash command detected. Write the script to .tmp/agent-<name>.sh using the Write tool, then run it with: bash run.sh .tmp/agent-<name>.sh"
 fi
-
-# Allow chained single-liners (&&, ||, ;) that don't contain heredocs
-if ! echo "$COMMAND" | grep -qE '<<|<<-'; then
-  # No heredocs — check if it's just command chaining on one logical line
-  # that happens to have a newline from formatting
-  # Be strict: if there are newlines, block it
-  :
-fi
-
-# Block: multi-line command not using run.sh
-jq -n '{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "BLOCKED: Multi-line Bash command detected. Write the script to .tmp/agent-<name>.sh using the Write tool, then run it with: bash run.sh .tmp/agent-<name>.sh"
-  }
-}'
-exit 0
