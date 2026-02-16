@@ -21,12 +21,69 @@ Execution happens in **one agent per parent issue**. Each agent works through th
 Before spawning execution agents:
 
 1. **Fetch issue details** - Use `gh issue view <number> --json title,body` for parent and all sub-issues
-2. **Analyze dependencies** - Determine which sub-issues can run in parallel vs sequential
-3. **Extract relevant TDD sections** - Don't send full TDD, only relevant excerpts
-4. **Snapshot current state** - What files exist, what tests are passing, what's the project structure
-5. **Determine domain boundaries** - Which directories/files this agent can touch
-6. **Construct execution prompt** - Use template below
-7. **Spawn agent** - Use `Task` tool with `subagent_type: general-purpose` and `run_in_background: true` for parallel execution
+2. **Query dependencies from GitHub** - Use the GraphQL API (see below) to fetch dependency relationships encoded during issue creation. This tells you which sub-issues can run in parallel vs must run sequentially.
+3. **Build execution plan** - Construct a dependency graph and determine parallelization opportunities based on the fetched dependencies
+4. **Extract relevant TDD sections** - Don't send full TDD, only relevant excerpts
+5. **Snapshot current state** - What files exist, what tests are passing, what's the project structure
+6. **Determine domain boundaries** - Which directories/files this agent can touch
+7. **Construct execution prompt** - Use template below, including the dependency graph
+8. **Spawn agent** - Use `Task` tool with `subagent_type: general-purpose` and `run_in_background: true` for parallel execution
+
+## Querying and Using Dependencies
+
+### Fetching dependencies for sub-issues
+
+For each sub-issue, query its dependencies to build the execution plan:
+
+```bash
+# Query dependencies for a batch of issues
+for issue_num in 103 104 105 106; do
+  gh api graphql \
+    -f query='
+      query($owner: String!, $repo: String!, $number: Int!) {
+        repository(owner: $owner, name: $repo) {
+          issue(number: $number) {
+            number
+            title
+            trackedInIssues(first: 100) {
+              nodes {
+                number
+                title
+              }
+            }
+          }
+        }
+      }
+    ' \
+    -f owner="$OWNER" \
+    -f repo="$REPO" \
+    -F number=$issue_num
+done
+```
+
+- `trackedInIssues` = issues that must complete before this one (dependencies)
+- If `trackedInIssues` is empty, the issue has no dependencies and can start immediately
+- Issues with the same dependencies can potentially run in parallel
+
+### Building the execution plan
+
+1. **Construct dependency graph:** For each issue, note which issues block it
+2. **Identify execution waves:**
+   - Wave 1: Issues with no dependencies
+   - Wave 2: Issues whose dependencies are all in Wave 1
+   - Wave 3: Issues whose dependencies are in Waves 1-2
+   - Continue until all issues are assigned
+3. **Determine parallelization:**
+   - Within each wave, issues can run in parallel if they don't share files
+   - Check the "Files to Create/Modify" section in each issue to verify no conflicts
+4. **Document execution strategy** in the agent prompt
+
+Example dependency graph:
+```
+Wave 1 (no deps):    #103
+Wave 2 (deps: 103):  #104
+Wave 3 (deps: 104):  #105, #106 (can run in parallel - different files)
+```
 
 ## Agent Execution Prompt Template
 
@@ -83,25 +140,33 @@ Your mission: Execute <N> sub-issues for Parent #<PARENT_NUMBER> (<PARENT_TITLE>
 
 ## EXECUTION STRATEGY
 
-**Dependency graph:**
+**Dependency graph (from GitHub issue dependencies):**
 <VISUAL_DEPENDENCY_GRAPH>
+
+The graph below was constructed by querying GitHub's dependency API during
+orchestration. It shows which issues block others and which can run in parallel.
+
 Example:
 ```
-#103 → #104 → #105, #106 (parallel after #104)
-#123, #124 can start in parallel (no shared files)
-#126, #127 depend on #123 (sequential after #123)
+Wave 1 (no deps):    #103
+Wave 2 (deps: 103):  #104
+Wave 3 (deps: 104):  #105, #106 (parallel - different files)
 ```
 
 **Execution plan:**
 <STEP_BY_STEP_EXECUTION_PLAN>
+
+Based on the dependency graph, execute in this order:
+
 Example:
-1. Implement #103 (blocks others)
-2. Implement #104 (depends on #103)
-3. Split: #105 and #106 can run in parallel
+1. Implement #103 (no dependencies, blocks #104)
+2. Implement #104 (depends on #103, blocks #105 and #106)
+3. Implement #105 and #106 sequentially (both depend on #104, but you're a single agent)
 4. Verification: run tests, lint, close issues
 
 **Parallelization note:** You are a single agent executing sequentially. The orchestrator
-may spawn additional agents for other parents in parallel. Focus on your assigned work.
+may spawn additional agents for other parents or other execution waves in parallel.
+Focus on your assigned work and follow the execution plan order.
 
 ## TECHNICAL CONTEXT
 
@@ -385,24 +450,38 @@ await spawnAgent({
 
 ## Orchestration Patterns
 
+All patterns use the dependency graph from GitHub to determine execution order.
+Query dependencies as shown in "Querying and Using Dependencies" above.
+
 ### Sequential Execution (safest)
 Spawn one agent at a time, wait for completion before spawning next.
-- Use when: Cross-parent dependencies exist, want to minimize git conflicts
-- Pros: Simple, predictable, minimal conflicts
-- Cons: Slower wall-clock time
+- Use when: First time using the process, want to minimize git conflicts, or learning the codebase
+- Pros: Simple, predictable, minimal conflicts, easier debugging
+- Cons: Slower wall-clock time (no parallelization)
+- Implementation: Process dependency waves one at a time
 
-### Parallel Execution by Domain (recommended)
-Spawn multiple agents for different domains simultaneously.
-- Use when: Parents touch different directories (backend vs frontend)
-- Pros: 2-3x faster for domain-separated work
-- Cons: Requires careful domain boundaries
-- Example: P2 (Rust), P3 (TS parsing), P6 (TS viewport) can all run in parallel
+### Parallel Execution by Wave (recommended)
+Spawn multiple agents for issues in the same dependency wave simultaneously.
+- Use when: Issues in the same wave touch different files/domains
+- Pros: 2-3x faster for well-decomposed work, respects dependencies automatically
+- Cons: Requires careful file boundary analysis
+- Implementation: Query dependencies → identify waves → spawn agents for Wave 1 → wait → spawn Wave 2 → etc.
+- Example: Wave 1 has #103 (backend), #110 (frontend) → spawn both in parallel
 
-### Hybrid (advanced)
-Sequential groups of parallel agents based on dependency layers.
-- Use when: You have a dependency graph like: P1 → (P2, P3 parallel) → P4
-- Pros: Maximum parallelism while respecting dependencies
-- Cons: More complex orchestration logic
+### Parallel Execution by Domain (alternative)
+Spawn multiple agents for different parent issues (domains) simultaneously.
+- Use when: Parents touch completely different directories (backend vs frontend)
+- Pros: Maximum parallelism across major domains
+- Cons: Requires parents to be truly independent, more complex git coordination
+- Example: P2 (Rust backend), P3 (TS parsing), P6 (TS viewport) can all run in parallel
+- Note: Each parent's agent still respects its internal sub-issue dependency graph
+
+### Hybrid Wave + Domain (advanced)
+Combine wave-based and domain-based parallelization.
+- Use when: You have multiple independent parents, each with internal dependency waves
+- Pros: Maximum parallelism while respecting all dependencies
+- Cons: Most complex orchestration logic, requires careful monitoring
+- Implementation: Spawn agents for (P2 Wave 1 + P3 Wave 1) → wait for both → spawn (P2 Wave 2 + P3 Wave 2) → etc.
 
 ## Context Efficiency Tips
 
@@ -452,11 +531,11 @@ After all agents complete, before merging:
 - **Test incrementally, verify at end:** Faster feedback loop
 - **Checkpoint commits:** Enable graceful context degradation
 - **Domain boundaries:** Critical for safe parallelization
-- **Dependency analysis:** Unlock 30-50% speedup for well-decomposed work
+- **Dependency encoding at creation time:** Encoding dependencies as GitHub issue dependencies during create-issues.md eliminates redundant analysis at execution time and enables automatic parallelization (30-50% speedup for well-decomposed work)
 
 ## See Also
 
-- `process/create-issues.md` - How issues were created and sized
+- `process/create-issues.md` - How issues were created, sized, and dependencies encoded (see Phase 2b for dependency analysis, see "Querying dependencies" section for GraphQL examples)
 - `process/first-run-qa.md` - What happens after execution
 - `process/agent-observability.md` - Metrics and monitoring
 - `.claude/CLAUDE.md` - Agent execution rules (6 rules)
