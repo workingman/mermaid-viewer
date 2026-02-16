@@ -3,7 +3,7 @@ import { computeEdgeCrossings } from './crossing-detector';
 import { renderEdgePath, createArrowMarker } from './edge-renderer';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const VIEWBOX_PADDING = 40;
+const VIEWBOX_PADDING = 60;
 const ARROW_TYPES = ['arrow_point', 'arrow_open', 'arrow_circle', 'arrow_cross'];
 
 export function compose(
@@ -13,6 +13,7 @@ export function compose(
 ): SVGSVGElement {
   const svg = createRootSvg(layout.positionedNodes);
   svg.appendChild(buildDefs());
+  svg.appendChild(buildStyles());
   svg.appendChild(buildEdgeLayer(layout, edges));
   svg.appendChild(buildNodeLayer(layout, svgFragments));
   return svg;
@@ -60,6 +61,27 @@ function buildDefs(): SVGDefsElement {
   return defs;
 }
 
+function buildStyles(): SVGStyleElement {
+  const style = createSvgElement('style') as SVGStyleElement;
+  style.textContent = `
+    .label-container {
+      fill: #f9f9f9;
+      stroke: #333;
+      stroke-width: 1.5px;
+    }
+    .label {
+      color: #333;
+      fill: #333;
+    }
+    .nodeLabel {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      color: #333;
+    }
+  `;
+  return style;
+}
+
 function buildEdgeLayer(layout: LayoutResult, edges: ParsedEdge[]): SVGGElement {
   const group = createSvgElement('g') as SVGGElement;
   group.setAttribute('class', 'edge-layer');
@@ -94,8 +116,19 @@ function buildNodeLayer(layout: LayoutResult, svgFragments: Map<string, string>)
 
 function wrapFragment(node: PositionedNode, fragment: string): SVGGElement {
   const group = createSvgElement('g') as SVGGElement;
-  group.setAttribute('transform', `translate(${node.x},${node.y})`);
-  group.innerHTML = fragment;
+  // Mermaid fragments are centered at origin, but ELK gives top-left coords
+  // Offset by half-width/height to position center correctly
+  const centerX = node.x + node.width / 2;
+  const centerY = node.y + node.height / 2;
+  group.setAttribute('transform', `translate(${centerX},${centerY})`);
+  // Use temporary SVG to parse fragment with correct namespace
+  const tempSvg = createSvgElement('svg') as SVGSVGElement;
+  tempSvg.innerHTML = fragment;
+  const fragmentRoot = tempSvg.firstElementChild;
+  if (fragmentRoot) {
+    fragmentRoot.removeAttribute('transform');
+    group.appendChild(fragmentRoot);
+  }
   return group;
 }
 

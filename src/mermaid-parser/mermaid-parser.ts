@@ -1,5 +1,5 @@
 import mermaid from 'mermaid';
-import type { ParseResult } from '@shared/types';
+import type { ParseResult, ParsedGraph } from '@shared/types';
 import { MermaidParseError } from '@shared/types';
 import { extract } from './graph-extractor';
 import { detectDiagramType, isPassthrough } from './diagram-detector';
@@ -26,16 +26,33 @@ async function validateSyntax(mmdText: string): Promise<void> {
   }
 }
 
-async function renderSvg(mmdText: string): Promise<string> {
+async function renderAndExtract(mmdText: string, diagramType: string): Promise<{ svg: string; extractResult: { graph: ParsedGraph; nodeSvgFragments: Map<string, string> } }> {
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '10000px';
+  container.style.height = '10000px';
   document.body.appendChild(container);
 
   try {
     const id = nextRenderId();
     const { svg } = await mermaid.render(id, mmdText, container);
-    return svg;
+    // Parse SVG with proper namespace handling
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svg, 'text/html');
+    const svgEl = doc.querySelector('svg');
+    if (!svgEl) {
+      throw new MermaidParseError('Mermaid did not produce an SVG element');
+    }
+    // Import into live DOM
+    const imported = document.importNode(svgEl, true) as SVGElement;
+    container.appendChild(imported);
+    // Force reflow
+    void container.offsetHeight;
+    // Extract while still connected!
+    const extractResult = extract(imported, diagramType);
+    return { svg, extractResult };
   } finally {
     container.remove();
   }
@@ -49,25 +66,19 @@ function emptyResult(diagramType: string, svg: string): ParseResult {
   };
 }
 
-function extractGraph(svg: string, diagramType: string): ParseResult {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svg, 'text/html');
-  const svgEl = doc.querySelector('svg');
-  if (!svgEl) {
-    return emptyResult(diagramType, svg);
-  }
-  const { graph, nodeSvgFragments } = extract(svgEl, diagramType);
-  return { graph, nodeSvgFragments, passthroughSvg: svg };
+function extractGraph(svg: string, diagramType: string, extractResult: { graph: ParsedGraph; nodeSvgFragments: Map<string, string> }): ParseResult {
+  return { graph: extractResult.graph, nodeSvgFragments: extractResult.nodeSvgFragments, passthroughSvg: svg };
 }
 
 export async function parse(mmdText: string): Promise<ParseResult> {
   initMermaid();
   await validateSyntax(mmdText);
-  const svg = await renderSvg(mmdText);
   const diagramType = detectDiagramType(mmdText);
+
+  const { svg, extractResult } = await renderAndExtract(mmdText, diagramType);
 
   if (isPassthrough(diagramType)) {
     return emptyResult(diagramType, svg);
   }
-  return extractGraph(svg, diagramType);
+  return extractGraph(svg, diagramType, extractResult);
 }

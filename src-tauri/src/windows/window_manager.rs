@@ -59,7 +59,7 @@ impl WindowManager {
         let _window = WebviewWindowBuilder::new(
             app_handle,
             &label,
-            WebviewUrl::default(),
+            WebviewUrl::App("index.html".into()),
         )
         .title(window_title(&file_path))
         .inner_size(w, h)
