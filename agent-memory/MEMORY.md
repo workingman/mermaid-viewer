@@ -49,9 +49,9 @@ Process should work for solo projects and scale to multi-person systems.
 
 ## Process Pipeline
 ```
-ideation → create-prd.md → create-tdd.md → create-issues.md → execute → first-run-qa.md
-                                                                              ↑
-                                                                        (RENDER layer active)
+ideation → create-prd.md → create-tdd.md → create-issues.md → execute-issues.md → first-run-qa.md
+                                                                                         ↑
+                                                                                   (RENDER layer active)
 ```
 
 ## Artifacts Status
@@ -60,6 +60,7 @@ ideation → create-prd.md → create-tdd.md → create-issues.md → execute �
 | create-prd.md | Done (v2) | process/create-prd.md |
 | create-tdd.md | Done | process/create-tdd.md |
 | create-issues.md | Done (v3.1) | process/create-issues.md |
+| **execute-issues.md** | **Done (v1)** | process/execute-issues.md |
 | **first-run-qa.md** | **Done (v1, testing)** | process/first-run-qa.md |
 | Standards | Drafted | docs/standards/general.md + .claude/skills/ |
 | Observability | Done | process/agent-observability.md |
@@ -77,14 +78,14 @@ ideation → create-prd.md → create-tdd.md → create-issues.md → execute �
 - Linear QA layers with fallback (BUILD gates BOOT gates RENDER etc.)
 - Always file issues, never fix inline (full ceremony for traceability)
 - Context engineering is first-class (qa-state.md as external memory)
-- Issue creation and execution are separate processes (TODO: split the prompt)
+- Issue creation and execution are separate processes (create-issues.md vs execute-issues.md)
 - **Co-Intelligence framing:** "The narrative shifts from replacement anxiety
   to capability multiplication." — core philosophy for how Sam talks about AI
 
 ## Active TODOs
 - [ ] Fix invisible SVG output (RENDER blocker — see render-debug-plan.md)
 - [ ] Complete RENDER checklist (blocked by webview issue)
-- [ ] Split create-issues.md into create + execute prompts
+- [x] Split create-issues.md into create + execute prompts (execute-issues.md v1 done)
 - [ ] Process flow mermaid diagram (full pipeline)
 - [ ] Investigate parallel BUILD+BOOT (after linear validated)
 - [ ] Agent memory visibility: analyze what to expose to team

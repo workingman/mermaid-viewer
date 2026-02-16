@@ -5,12 +5,12 @@ Reusable prompt templates for AI-assisted software development.
 ## Pipeline
 
 ```
-create-prd.md  →  create-tdd.md  →  create-issues.md  →  agents execute issues
-     |                  |                   |
-  WHAT to build      HOW to build it    WHO does what
-  (problem, FRs,     (stack, schemas,   (GitHub Issues
-   acceptance         contracts, dir     w/ exit criteria)
-   criteria)          structure)
+create-prd.md  →  create-tdd.md  →  create-issues.md  →  execute-issues.md  →  first-run-qa.md
+     |                  |                   |                      |                    |
+  WHAT to build      HOW to build       WHO does what      IMPLEMENT code      VERIFY quality
+  (problem, FRs,     (stack, schemas,   (GitHub Issues     (spawn agents,      (BUILD→BOOT→
+   acceptance         contracts, dir     w/ exit criteria   parallel exec,      RENDER→FUNCTION
+   criteria)          structure)         & checkpoints)     commit & close)     →POLISH)
 ```
 
 ## Artifacts
@@ -20,6 +20,42 @@ create-prd.md  →  create-tdd.md  →  create-issues.md  →  agents execute is
 | `create-prd.md` | Generate a Product Requirements Document from a raw idea |
 | `create-tdd.md` | Generate a Technical Design Document from a PRD |
 | `create-issues.md` | Decompose a PRD + TDD into self-contained GitHub Issues |
+| `execute-issues.md` | Orchestrate AI agents to implement issues in parallel with efficiency and correctness |
+| `first-run-qa.md` | Structured QA process from "implemented" to "works correctly" |
+
+## Quality Assurance
+
+After implementation, use `first-run-qa.md` to systematically verify the project through five layers: BUILD → BOOT → RENDER → FUNCTION → POLISH.
+
+### Starting a QA Session
+
+**To start or resume QA work, use the skill:**
+
+```
+/qa-continue
+```
+
+This automatically:
+1. Reads `process/first-run-qa.md` (the QA process definition)
+2. Recovers state from `qa-state.md` and `qa-findings.md`
+3. Checks open QA issues
+4. Resumes from the recorded position
+
+**State files:**
+- `qa-state.md` — current layer, step, cycle, and wisdom summaries
+- `qa-findings.md` — append-only log of all findings
+
+### QA Pyramid
+
+```
+     POLISH     — Edge cases, perf, UX quality (human-primary)
+    FUNCTION    — Features work correctly (automated + manual)
+   RENDER       — UI/output appears correctly (human-primary)
+  BOOT          — App starts and stays running (agent + 1 confirmation)
+ BUILD          — Compiles, bundles, lints cleanly (fully agentic)
+```
+
+Each layer gates the next. The process is stateful and survives context depletion.
 
 ## Standards
 
@@ -34,7 +70,8 @@ The pipeline runs start-to-finish:
 1. Write the PRD (problem definition, requirements, acceptance criteria)
 2. Write the TDD (all technical decisions, architecture, data models)
 3. Generate issues (self-contained tasks agents can execute uninterrupted)
-4. Agents execute issues against an empty codebase
+4. Execute issues (spawn agents with optimized context, parallel when possible)
+5. Verify quality (systematic QA through BUILD→BOOT→RENDER→FUNCTION→POLISH)
 
 ### Brownfield (existing codebase)
 The pipeline is the same, but Step 2 changes significantly:
