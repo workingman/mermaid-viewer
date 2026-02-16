@@ -57,6 +57,11 @@ Your mission: Execute <N> sub-issues for Parent #<PARENT_NUMBER> (<PARENT_TITLE>
    If context grows large (>80% full), commit at checkpoint and STOP. Report status
    for fresh session continuation.
 
+7. **Update issues minimally.** Update checkboxes only when closing an issue (one
+   bulk update). Exception: if stopping mid-issue due to context limit, update to
+   show completed checkpoints for resumption. Progress visibility during execution
+   comes from git commits, not issue updates.
+
 ## PROJECT CONTEXT
 
 **Project root:** `<PROJECT_ROOT>`
@@ -161,6 +166,44 @@ Each sub-issue has 2-5 checkpoints. Work through them in order.
 
 **The orchestrator will spawn a fresh agent with the same prompt but updated
 "Current State" section reflecting your progress.**
+
+## ISSUE PROGRESS TRACKING
+
+**Update checkboxes only when closing the issue** (one API call per issue):
+
+```bash
+# Before closing, mark all work as complete
+BODY=$(gh issue view <issue-number> --json body -q .body)
+BODY=$(echo "$BODY" | sed 's/- \[ \] /- [x] /g')
+gh issue edit <issue-number> --body "$BODY"
+
+# Then close
+gh issue close <issue-number> -c "All checkpoints and acceptance criteria complete."
+```
+
+**Exception: If stopping mid-issue due to context limit:**
+Update the issue to show which checkpoints are done before stopping:
+
+```bash
+# Mark completed checkpoints (be specific)
+BODY=$(gh issue view <issue-number> --json body -q .body)
+BODY=$(echo "$BODY" | sed 's/- \[ \] Checkpoint 1:/- [x] Checkpoint 1:/')
+BODY=$(echo "$BODY" | sed 's/- \[ \] Checkpoint 2:/- [x] Checkpoint 2:/')
+gh issue edit <issue-number> --body "$BODY"
+
+# Add comment explaining status
+gh issue comment <issue-number> -b "Context limit reached. Checkpoints 1-2 complete. Resume from Checkpoint 3."
+```
+
+**Why minimal updates:**
+- GitHub API rate limits (5,000 requests/hour)
+- Each update = fetch + upload entire issue body (~500-800 tokens)
+- Network latency adds 200-500ms per update
+- Orchestrator can track progress via git commits during execution
+- Issue checkboxes matter most for final state and resumption
+
+**Progress visibility during execution:** Use git commits, not issue updates.
+Orchestrator can run `git log --oneline --since="10 minutes ago"` to see progress.
 
 ## GIT PROTOCOL
 
@@ -269,7 +312,7 @@ After completing all sub-issues, provide this report:
 - ✓ All "Files to Create/Modify" addressed
 - ✓ Standards compliance verified
 
-**Issues closed:**
+**Issues closed:** (all checkboxes checked before closing)
 - https://github.com/<owner>/<repo>/issues/<n1>
 - https://github.com/<owner>/<repo>/issues/<n2>
 ...
