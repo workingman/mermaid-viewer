@@ -88,6 +88,9 @@ bug report / feature request → create-prd.md → create-tdd.md → create-issu
 - Always file issues, never fix inline (full ceremony for traceability)
 - Context engineering is first-class (qa-state.md as external memory)
 - Issue creation and execution are separate processes (create-issues.md vs execute-issues.md)
+- **Orchestrator-driven context management:** Agents cannot self-monitor context
+  usage. Orchestrator monitors externally and intervenes at 70-80% (140k-160k
+  tokens), not 90-95%. Safety margin (20-40k tokens) enables graceful shutdown.
 - **Co-Intelligence framing:** "The narrative shifts from replacement anxiety
   to capability multiplication." — core philosophy for how Sam talks about AI
 
@@ -153,6 +156,12 @@ bug report / feature request → create-prd.md → create-tdd.md → create-issu
 - `qa-state.md` / `qa-findings.md` — live QA tracking (project root)
 
 ## Lessons Learned
+- **Agents cannot self-monitor context usage.** They lack visibility into token
+  counts and may claim "at 80%" when actually at 95%+. Orchestrator must monitor
+  externally using TaskOutput(block=false) and git log. Intervene at 140k-160k
+  tokens (70-80%), not at 180k+ (90%+). Safety margin of 20-40k tokens enables
+  graceful shutdown with proper checkpoint updates. (Backported from calendar-mcp,
+  commit f5ca675)
 - **Debug Tauri apps in dev mode first.** Release builds have no devtools
   and take ~80s to build. Dev mode has hot-reload and console access.
 - **Dev mode can't receive Apple Events.** Workaround: hardcode a test
