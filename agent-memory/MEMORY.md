@@ -92,16 +92,47 @@ bug report / feature request → create-prd.md → create-tdd.md → create-issu
   to capability multiplication." — core philosophy for how Sam talks about AI
 
 ## Active TODOs
+
+### mmv Project (current)
 - [ ] Fix invisible SVG output (RENDER blocker — see render-debug-plan.md)
 - [ ] Complete RENDER checklist (blocked by webview issue)
+
+### Process Enhancements (inspired by Agent OS comparison)
+- [ ] **Standards library** — Create comprehensive standards templates like Agent OS
+  - Coding style, API design, testing patterns, etc.
+  - Currently have basic standards in docs/standards/general.md
+  - Need frontend, backend, testing specific standards
+- [ ] **Up-front requirements gathering** — Interactive Q&A process for capturing needs
+  - For greenfield: Initial product vision, features, constraints
+  - For EVOLVE: New feature requirements with stakeholder Q&A
+  - For MAINTAIN: Bug reports, reproduction steps, acceptance criteria
+  - Could be `shape-prd.md` process similar to Agent OS's spec-shaper
+- [ ] **Visual assets support** — Mockups/screenshots integration (nice to have)
+  - Dedicated folder structure for design assets
+  - Reference visuals in PRD/TDD/issues
+  - Agents can use visuals during implementation
+- [ ] **Visual debugging capability** — Playwright integration for UI testing
+  - Browser testing during implementation
+  - Screenshot capture for verification
+  - Store test screenshots with issues
+- [ ] **Evaluate subagent specialization** — Is manual subagent selection valuable?
+  - Agent OS lets users assign specialists to task groups
+  - We auto-assign based on domain boundaries
+  - Research if explicit specialization improves quality
+
+### Process Development
 - [x] Split create-issues.md into create + execute prompts (execute-issues.md v1 done)
+- [x] Add dependency analysis and parallelization (done)
 - [ ] **MAINTENANCE and EVOLVE layers** — extend process to support brownfield development
   - MAINTENANCE: bug fixes in existing codebases
   - EVOLVE: feature development in existing codebases
   - Both should reuse create-prd.md + create-tdd.md specification process
+  - Integrate with requirements gathering process (Q&A for brownfield)
   - Then flow into create-issues.md → execute-issues.md → first-run-qa.md
   - mmv transitions from greenfield to brownfield once we hit MVP
   - Goal: plug process into any existing codebase and start iterating
+
+### Infrastructure & Documentation
 - [ ] Process flow mermaid diagram (full pipeline)
 - [ ] Investigate parallel BUILD+BOOT (after linear validated)
 - [ ] Agent memory visibility: analyze what to expose to team
