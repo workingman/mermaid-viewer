@@ -125,7 +125,7 @@ CONSTRAINTS:
 
 ### Execution invocation template
 
-When spawning an **execution** subagent for a parent issue (Phase 2b), provide
+When spawning an **execution** subagent for a parent issue (Phase 2c), provide
 this context:
 
 ```
@@ -139,6 +139,12 @@ SCOPE: <list of PRD FR-xxx numbers and TDD sections assigned to this parent>
 PLANNED SUB-ISSUES (create these):
 <paste the numbered list from the planning phase — this batch only>
 
+DEPENDENCY GRAPH (for this parent):
+<paste the dependency graph from Phase 2b>
+Example:
+  - Issue A creates file X → Issue B modifies X (B depends on A)
+  - Issues C and D touch different files (can run in parallel)
+
 INPUTS (read these files):
 - PRD: <path>
 - TDD: <path>
@@ -150,12 +156,14 @@ CONSTRAINTS:
 - Create ONLY the sub-issues listed in PLANNED SUB-ISSUES above.
 - Only create sub-issues for THIS parent. Cross-parent needs are noted as
   dependencies, not new sub-issues.
+- After creating each sub-issue, set its dependencies using the dependency
+  graph above (use the GraphQL API - see "Setting a dependency" section).
 - Run the self-validation checklist before finishing.
 - Follow the sub-issue body template from process/create-issues.md.
 
 BASH PERMISSION PATTERN:
 - Single commands (gh issue create, gh api, etc.) can run directly.
-- For multi-line scripts (e.g., create issue + capture ID + link sub-issue),
+- For multi-line scripts (e.g., create issue + capture ID + link sub-issue + set deps),
   write the script to `.tmp/agent-<taskname>.sh` and run it with
   `bash run.sh .tmp/agent-<taskname>.sh`. This is pre-authorized and avoids
   permission prompts. Do NOT use /tmp/ — only `.tmp/` in the project root.
@@ -266,7 +274,23 @@ gh label create "phase:polish" --color "E6E6E6" --description "Polish: error han
     c. The orchestrator reviews the plans. (Optional: present the combined
        plan to the user for a final check before creation.)
 
-8.  **Phase 2b -- Create Sub-Issues in GitHub:** For each parent's plan:
+8.  **Phase 2b -- Analyze Dependencies:** Before creating sub-issues, analyze their dependencies:
+
+    a. For each planned sub-issue, identify which files it will create/modify
+       (from the TDD directory structure and the planning output).
+    b. Determine blocking relationships:
+       - **File dependency:** Issue B modifies a file that Issue A creates → B depends on A
+       - **Interface dependency:** Issue B uses an interface that Issue A defines → B depends on A
+       - **Data dependency:** Issue B requires data structures from Issue A → B depends on A
+       - **Integration dependency:** Issue B integrates components from Issue A → B depends on A
+    c. Construct a dependency graph showing which issues can run in parallel
+       vs. must run sequentially.
+    d. Identify parallelization opportunities: issues with no shared
+       dependencies and different file paths can execute concurrently.
+    e. Document the dependency graph in a comment on each parent issue showing
+       the execution plan (e.g., "#103 → #104 → (#105, #106 parallel)").
+
+9.  **Phase 2c -- Create Sub-Issues in GitHub:** For each parent's plan:
 
     a. If the plan has 5 or fewer sub-issues, spawn a single **execution
        subagent** to create them all. Use the **execution invocation template**
@@ -276,10 +300,12 @@ gh label create "phase:polish" --color "E6E6E6" --description "Polish: error han
        already-created issue numbers to avoid duplication.
     c. Each execution subagent creates its sub-issues via `gh issue create`
        and links them to the parent using the `gh api` sub-issues endpoint.
-    d. If the PRD specifies ordering constraints, set dependencies between
-       issues using the `gh api` dependencies endpoint.
+    d. **Set dependencies between issues** using the dependency graph from
+       Phase 2b. For each blocking relationship identified, use the `gh api`
+       GraphQL endpoint to encode the dependency (see "Setting a dependency
+       between issues" below).
 
-9.  **Summary:** After all issues are created, present a summary table showing issue numbers, titles, parent-child relationships, and URLs.
+10. **Summary:** After all issues are created, present a summary table showing issue numbers, titles, parent-child relationships, dependencies, and URLs.
 
 ## Issue Structure
 
@@ -473,8 +499,11 @@ gh api "repos/{owner}/{repo}/issues/<parent-number>/sub_issues" \
 
 ### Setting a dependency between issues
 
+Use the GraphQL API to encode blocking relationships. This enables the execution
+orchestrator (process/execute-issues.md) to construct parallelization plans.
+
 ```bash
-# If issue #5 is blocked by issue #3
+# If issue #5 is blocked by issue #3 (Issue #5 depends on #3)
 BLOCKED_ID=$(gh issue view 5 --json id --jq '.id')
 BLOCKING_ID=$(gh issue view 3 --json id --jq '.id')
 
@@ -492,6 +521,46 @@ gh api graphql \
   -f blockedId="$BLOCKED_ID" \
   -f blockingId="$BLOCKING_ID"
 ```
+
+**Terminology:**
+- `blockedId` = the issue that is waiting (dependent)
+- `blockingId` = the issue that must complete first (dependency)
+- Example: "#5 depends on #3" means #3 blocks #5
+
+### Querying dependencies for an issue
+
+The execution orchestrator uses this query to build the dependency graph:
+
+```bash
+# Get all dependencies for issue #5
+gh api graphql \
+  -f query='
+    query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        issue(number: $number) {
+          trackedIssues(first: 100) {
+            nodes {
+              number
+              title
+            }
+          }
+          trackedInIssues(first: 100) {
+            nodes {
+              number
+              title
+            }
+          }
+        }
+      }
+    }
+  ' \
+  -f owner=<owner> \
+  -f repo=<repo> \
+  -F number=5
+```
+
+- `trackedIssues` = issues that THIS issue blocks (dependents)
+- `trackedInIssues` = issues that block THIS issue (dependencies)
 
 Note: The sub-issues REST API and the dependencies GraphQL API may change. If a command fails, check `gh api --help` and the GitHub docs for current syntax.
 
@@ -515,12 +584,15 @@ Each issue must contain enough context to stand alone. Do not assume the reader 
    window.** See Context Management.
 4. **Never create more than 5 sub-issues in a single execution invocation.**
    This is a context cap, not a scoping target. See Context Management.
-5. **Use the two-phase process:** plan sub-issues first (Phase 2a), then
-   create them (Phase 2b). See Process.
-6. **Run the self-validation checklist before finishing every invocation.** See
+5. **Use the three-phase process:** plan sub-issues (Phase 2a), analyze
+   dependencies (Phase 2b), then create and link them (Phase 2c). See Process.
+6. **Dependency analysis is mandatory.** Every set of sub-issues must have
+   their file/interface dependencies analyzed and encoded as GitHub issue
+   dependencies. This enables parallel execution during implementation.
+7. **Run the self-validation checklist before finishing every invocation.** See
    Context Management.
-7. Every sub-issue must have testable acceptance criteria.
-8. Prefer fewer, well-scoped issues over many trivial ones. See § Right-Sizing.
+8. Every sub-issue must have testable acceptance criteria.
+9. Prefer fewer, well-scoped issues over many trivial ones. See § Right-Sizing.
 9. Reference specific files from the TDD directory structure and existing code
    patterns in each issue.
 10. Every sub-issue must include relevant interface contracts and data models
