@@ -49,13 +49,28 @@ PRD, flag it explicitly in Section 7 rather than silently resolving it.
    Do NOT ask about things that are already decided in the PRD, the standards,
    or that have an obvious best practice. Make the call and document it.
 
-5. **Generate the TDD** in `docs/`:
-   * `tdd-[feature-name].md` (The Technical Design)
-   * `arch-[feature-name].mmd` (The Architecture Diagram)
+5. **Generate the TDD** as a modular directory in `docs/`:
 
-## TDD Structure (File 1)
+   Create `docs/tdd-[feature-name]/` with these files:
+   * `README.md` - Master document (metadata, architecture overview, navigation)
+   * `1-technology-choices.md` - Stack decisions and rationales
+   * `2-data-models.md` - Schemas, types, data structures
+   * `3-interface-contracts.md` - APIs, function signatures, events
+   * `4-directory-structure.md` - Project layout and file organization
+   * `5-implementation-decisions.md` - Key patterns and guidance
+   * `6-open-questions.md` - PRD gaps (if any, otherwise omit)
+   * `7-risk-register.md` - Technical risks and mitigations
+   * `arch-diagram.mmd` - Architecture diagram (Mermaid)
 
-### 0. Metadata
+   **Why modular?** Agents load only relevant files (e.g., backend issue reads
+   data-models + interface-contracts). This saves ~6K tokens per agent vs.
+   sending the full TDD. See execute-issues.md for how orchestrators use this.
+
+## TDD Structure
+
+### README.md (Master Document)
+
+#### 0. Metadata
 
 | Attribute | Details |
 | :--- | :--- |
@@ -64,25 +79,9 @@ PRD, flag it explicitly in Section 7 rather than silently resolving it.
 | **Tech Lead** | [Name] |
 | **Standards** | `docs/standards/general.md`, `docs/standards/[language].md` |
 
-### 1. Technology Choices
+#### 1. Architecture Overview
 
-For each choice: what, why, and what was rejected.
-
-**Format:**
-
-| Category | Choice | Rationale | Alternatives Considered |
-| :--- | :--- | :--- | :--- |
-| Runtime | Node.js 22 | Non-blocking I/O, ecosystem | Deno (immature ecosystem) |
-| Framework | Tauri 2.0 | Small bundle, native APIs | Electron (100MB+), Wails |
-| ... | ... | ... | ... |
-
-Only include categories relevant to the project. Common categories:
-Runtime, Framework, Language, Database, ORM, CSS, Testing, Build Tool,
-Package Manager, Linting, CI/CD, Hosting.
-
-### 2. Architecture Overview
-
-Reference the companion diagram: `docs/arch-[feature-name].mmd`
+Reference the companion diagram: `arch-diagram.mmd`
 
 Describe the system in terms of **components** and **boundaries**:
 
@@ -96,9 +95,45 @@ Describe the system in terms of **components** and **boundaries**:
 For multi-component systems, identify which components live in which process,
 service, or deployment unit.
 
-### 3. Data Models
+#### 2. Navigation
 
-Define the schemas, types, or data structures that the system manages.
+This TDD is organized into focused modules for efficient agent consumption:
+
+* **[Technology Choices](1-technology-choices.md)** - Stack decisions and rationales
+* **[Data Models](2-data-models.md)** - Schemas, types, data structures
+* **[Interface Contracts](3-interface-contracts.md)** - APIs, functions, events
+* **[Directory Structure](4-directory-structure.md)** - Project layout
+* **[Implementation Decisions](5-implementation-decisions.md)** - Key patterns and guidance
+* **[Open Questions](6-open-questions.md)** - PRD gaps (if any)
+* **[Risk Register](7-risk-register.md)** - Technical risks and mitigations
+
+---
+
+### 1-technology-choices.md
+
+Technology stack decisions with rationale and alternatives.
+
+**Content:**
+
+For each choice: what, why, and what was rejected.
+
+| Category | Choice | Rationale | Alternatives Considered |
+| :--- | :--- | :--- | :--- |
+| Runtime | Node.js 22 | Non-blocking I/O, ecosystem | Deno (immature ecosystem) |
+| Framework | Tauri 2.0 | Small bundle, native APIs | Electron (100MB+), Wails |
+| ... | ... | ... | ... |
+
+Only include categories relevant to the project. Common categories:
+Runtime, Framework, Language, Database, ORM, CSS, Testing, Build Tool,
+Package Manager, Linting, CI/CD, Hosting.
+
+---
+
+### 2-data-models.md
+
+Schemas, types, and data structures the system manages.
+
+**Content:**
 
 **For each model:**
 ```
@@ -114,10 +149,13 @@ exact schema with an annotated example.
 
 For databases, define tables, columns, types, constraints, and indexes.
 
-### 4. Interface Contracts
+---
 
-Define the contracts between components. These are the seams where one piece
-of code talks to another.
+### 3-interface-contracts.md
+
+Contracts between components - the seams where code communicates.
+
+**Content:**
 
 **APIs (if applicable):**
 ```
@@ -143,9 +181,15 @@ event_name
   Timing: [sync/async, debounced, throttled]
 ```
 
-### 5. Directory Structure
+---
 
-Define the project layout. Every directory has a one-line purpose.
+### 4-directory-structure.md
+
+Project layout - where files live and why.
+
+**Content:**
+
+Every directory has a one-line purpose.
 
 ```
 project-root/
@@ -164,10 +208,15 @@ project-root/
 The structure must follow the standards' "group by feature, not by type" rule
 unless the framework dictates otherwise (e.g., Rails conventions).
 
-### 6. Key Implementation Decisions
+---
 
-Decisions that constrain how tasks will be implemented. Each entry captures
-a decision, the reasoning, and the specific guidance for implementers.
+### 5-implementation-decisions.md
+
+Key patterns, constraints, and guidance for implementers.
+
+**Content:**
+
+Each entry captures a decision, the reasoning, and specific guidance.
 
 **Format:**
 
@@ -186,19 +235,30 @@ Examples of what belongs here:
 - Performance-critical paths and how to optimize them
 - Third-party integration patterns
 
-### 7. Open Questions & PRD Gaps
+---
 
-Anything discovered during TDD creation that the PRD doesn't address.
-These must be resolved before task generation.
+### 6-open-questions.md
+
+PRD gaps discovered during TDD creation. Must be resolved before issue generation.
+
+**Content:**
 
 | # | Question | Impact | Proposed Resolution |
 | :--- | :--- | :--- | :--- |
 | 1 | PRD says "error indicator (design TBD)" — what form? | Blocks FR-007 task details | Toast notification with dismiss |
 | 2 | ... | ... | ... |
 
-If this section is empty, state "None — PRD fully covers the technical surface."
+**Note:** If there are no open questions, **omit this file entirely** and remove
+it from README.md navigation. State in README: "No open questions — PRD fully
+covers the technical surface."
 
-### 8. Risk Register
+---
+
+### 7-risk-register.md
+
+Technical risks, likelihood, impact, and mitigation strategies.
+
+**Content:**
 
 | Risk | Likelihood | Impact | Mitigation |
 | :--- | :--- | :--- | :--- |
@@ -207,11 +267,16 @@ If this section is empty, state "None — PRD fully covers the technical surface
 Focus on technical risks: library limitations, performance cliffs, integration
 unknowns, areas where prototyping is needed before committing.
 
-## Architecture Diagram (File 2)
+---
 
-Create a separate file named `docs/arch-[feature-name].mmd`.
+### arch-diagram.mmd
 
-* **Content:** A Mermaid diagram showing components, boundaries, and data flow.
+Mermaid diagram showing components, boundaries, and data flow.
+
+**Content:**
+
+A Mermaid diagram showing components, boundaries, and data flow.
+
 * **Style:** Use `graph LR` or `graph TD` for system overviews. Use
   `sequenceDiagram` for complex interactions. Use subgraphs to show
   process/deployment boundaries.
@@ -219,13 +284,35 @@ Create a separate file named `docs/arch-[feature-name].mmd`.
   implementation. A new developer should look at this and understand "what
   talks to what."
 
+---
+
+## How Agents Consume Modular TDDs
+
+The modular structure enables efficient agent execution:
+
+**During issue creation** (`create-issues.md`):
+- Issues reference specific TDD files in "Technical Reference" section
+- Example: "Data models: `tdd-auth/2-data-models.md`"
+
+**During execution** (`execute-issues.md`):
+- Orchestrator reads issue bodies to determine which TDD files to include
+- Agent prompt includes file paths, not extracted sections
+- Example: "Read `tdd-auth/2-data-models.md` and `tdd-auth/3-interface-contracts.md`"
+
+**Token savings:**
+- Backend issue: 2 files (~4K tokens) vs full TDD (~15K tokens) = **73% reduction**
+- Frontend issue: 1 file (~2K tokens) vs full TDD (~15K tokens) = **87% reduction**
+
 ## Final Instructions
 
-1. Every technology choice must have a rationale — no "we just use X."
-2. Every data model must be concrete — field names, types, constraints.
+1. **Generate the full directory structure** - Create `docs/tdd-[feature-name]/`
+   with all files (README.md + 7 subdocs + arch-diagram.mmd)
+2. Every technology choice must have a rationale — no "we just use X."
+3. Every data model must be concrete — field names, types, constraints.
    No "the schema will include relevant fields."
-3. Every interface contract must be specific enough to code against.
-4. Flag PRD gaps; do not silently fill them with assumptions.
-5. Reference the standards; do not restate them.
-6. The TDD is a living document — update it when decisions change during
-   implementation.
+4. Every interface contract must be specific enough to code against.
+5. Flag PRD gaps in `6-open-questions.md`; do not silently fill them. If no
+   gaps exist, omit this file.
+6. Reference the standards; do not restate them.
+7. The TDD is a living document — update individual files when decisions
+   change during implementation. Modular structure makes targeted updates easier.

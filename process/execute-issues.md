@@ -23,10 +23,10 @@ Before spawning execution agents:
 1. **Fetch issue details** - Use `gh issue view <number> --json title,body` for parent and all sub-issues
 2. **Query dependencies from GitHub** - Use the GraphQL API (see below) to fetch dependency relationships encoded during issue creation. This tells you which sub-issues can run in parallel vs must run sequentially.
 3. **Build execution plan** - Construct a dependency graph and determine parallelization opportunities based on the fetched dependencies
-4. **Extract relevant TDD sections** - Don't send full TDD, only relevant excerpts
+4. **Identify required TDD files** - Parse issue bodies for TDD file references (e.g., `tdd-auth/2-data-models.md`). Collect unique files needed across all sub-issues for this parent.
 5. **Snapshot current state** - What files exist, what tests are passing, what's the project structure
 6. **Determine domain boundaries** - Which directories/files this agent can touch
-7. **Construct execution prompt** - Use template below, including the dependency graph
+7. **Construct execution prompt** - Use template below, including dependency graph and TDD file paths
 8. **Spawn agent** - Use `Task` tool with `subagent_type: general-purpose` and `run_in_background: true` for parallel execution
 
 ## Querying and Using Dependencies
@@ -182,20 +182,20 @@ Focus on your assigned work and follow the execution plan order.
 
 ## TECHNICAL CONTEXT
 
-These excerpts from the TDD provide the contracts and decisions relevant to your work.
-DO NOT read the full TDD file - everything you need is below.
+The TDD for this feature is modular. Read only the files relevant to your work:
 
-### Interface Contracts (TDD §4)
-<PASTE_ONLY_RELEVANT_INTERFACE_CONTRACTS>
+**TDD files to read:**
+- `<path-to-tdd>/README.md` - Architecture overview (quick reference)
+- `<path-to-tdd>/2-data-models.md` - Schemas and types
+- `<path-to-tdd>/3-interface-contracts.md` - Function signatures and APIs
+- `<path-to-tdd>/5-implementation-decisions.md` - Patterns and guidance
+  (Add/remove files based on what issues reference)
 
-### Data Models (TDD §3)
-<PASTE_ONLY_RELEVANT_DATA_MODELS>
+**Why modular?** You only read what you need (~2-4K tokens) instead of the full
+TDD (~15K tokens). This saves context for your implementation work.
 
-### Key Implementation Decisions (TDD §6)
-<PASTE_ONLY_RELEVANT_DECISIONS>
-
-### Risk Mitigations (TDD §8)
-<PASTE_ONLY_RELEVANT_RISKS>
+**If an issue references a specific TDD file in its "Technical Reference" section,
+read that file.** Most issues need 1-3 TDD files total.
 
 ## SUB-ISSUE #<N>: <TITLE>
 
@@ -524,7 +524,9 @@ Combine wave-based and domain-based parallelization.
 
 ## Context Efficiency Tips
 
-1. **TDD excerpts, not full doc:** Save ~6K tokens per agent
+1. **Modular TDD files, not full doc:** Send only referenced files (e.g.,
+   `2-data-models.md`, `3-interface-contracts.md`). Saves 60-80% tokens vs.
+   full TDD. Issues reference specific files in "Technical Reference" section.
 2. **Inline issue bodies, not URLs:** Agent can't fetch them anyway
 3. **Compress current state:** List files, don't show full contents
 4. **Reference standards, don't repeat:** Standards are already in `.claude/CLAUDE.md`
@@ -565,7 +567,7 @@ After all agents complete, before merging:
 
 ## Lessons Learned (update as you discover new patterns)
 
-- **TDD excerpt optimization:** Saves ~6K tokens per agent (HIGH value)
+- **Modular TDD optimization:** Issues reference specific TDD files (e.g., `2-data-models.md`). Agents read 2-4K tokens instead of 15K. Saves 60-80% tokens vs. monolithic TDD (HIGH value)
 - **Git isolation protocol:** Prevents cross-contamination in parallel execution
 - **Test incrementally, verify at end:** Faster feedback loop
 - **Checkpoint commits:** Enable graceful context degradation

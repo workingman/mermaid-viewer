@@ -97,7 +97,8 @@ SCOPE: <list of PRD FR-xxx numbers and TDD sections assigned to this parent>
 
 INPUTS (read these files):
 - PRD: <path>
-- TDD: <path>
+- TDD: <path-to-tdd-directory> (modular TDD - read README.md for overview,
+  then relevant module files as needed)
 - Parent issue: gh issue view <number>
 
 OUTPUT: A numbered list of right-sized sub-issues. For each:
@@ -147,9 +148,13 @@ Example:
 
 INPUTS (read these files):
 - PRD: <path>
-- TDD: <path>
+- TDD directory: <path-to-tdd-directory>
 - Parent issue: gh issue view <number>
 - Already-created sub-issues (if any): #<n1>, #<n2>, ...
+
+When creating sub-issues, reference specific TDD files in the "Technical Reference"
+section (e.g., `tdd-auth/2-data-models.md`, `tdd-auth/3-interface-contracts.md`).
+This enables the orchestrator to load only relevant files during execution.
 
 CONSTRAINTS:
 - Maximum 5 sub-issues in this invocation.
@@ -365,7 +370,18 @@ domains, list both — but consider splitting the issue instead.]
 
 ## Technical Reference
 
-[Extracted from the TDD. Include the specific interface contracts, data models, and implementation decisions relevant to this issue. Reference by TDD section. E.g., "See TDD Section 4: LayoutEngine.computeLayout() interface." Include enough detail that the implementer does not need to re-read the full TDD.]
+**TDD modules to read:**
+- `tdd-[feature-name]/[relevant-file].md`
+- `tdd-[feature-name]/[relevant-file].md`
+
+**Key details:**
+- [Specific interface contracts, data models, or decisions from those files]
+- [Example: "See `3-interface-contracts.md`: `LayoutEngine.computeLayout()` signature"]
+- [Include critical details inline so agent doesn't have to search]
+
+**Note:** Reference specific TDD files (e.g., `tdd-auth/2-data-models.md`,
+`tdd-auth/3-interface-contracts.md`) instead of extracting sections. The
+orchestrator will load these files for the agent during execution.
 
 ## Implementation Checkpoints
 
