@@ -102,22 +102,30 @@ Your mission: Execute <N> sub-issues for Parent #<PARENT_NUMBER> (<PARENT_TITLE>
    NEVER use `git add .` or `git add -A` (risks staging other agents' work).
    Format: `<imperative summary> (#<issue-number>)`
 
-3. **Test incrementally.** Write 2-8 tests per issue. Run ONLY your new tests during
+3. **Close issues only when fully complete.** Before closing a sub-issue, verify:
+   - All implementation checkpoints are complete
+   - All acceptance criteria are met and tests pass
+   - Code is committed and pushed
+   Then mark all checkboxes complete and CLOSE THE ISSUE with `gh issue close <number>`.
+   This is MANDATORY. Issues left open indicate incomplete work. NEVER close an issue
+   if any checkpoint or acceptance criterion is incomplete.
+
+4. **Test incrementally.** Write 2-8 tests per issue. Run ONLY your new tests during
    development. Run full test suite only after completing ALL sub-issues.
 
-4. **Stay in your lane.** Domain: `<DOMAIN>`. Work in: <LIST_OF_ALLOWED_DIRECTORIES>.
+5. **Stay in your lane.** Domain: `<DOMAIN>`. Work in: <LIST_OF_ALLOWED_DIRECTORIES>.
    Do NOT touch: <LIST_OF_FORBIDDEN_DIRECTORIES>.
 
-5. **Read standards first:** `<STANDARDS_PATH>` - Key limits: <KEY_LIMITS_SUMMARY>
+6. **Read standards first:** `<STANDARDS_PATH>` - Key limits: <KEY_LIMITS_SUMMARY>
 
-6. **Follow checkpoints.** Each issue has 2-5 checkpoints. Work through them in order.
+7. **Follow checkpoints.** Each issue has 2-5 checkpoints. Work through them in order.
    If context grows large (>80% full), commit at checkpoint and STOP. Report status
    for fresh session continuation.
 
-7. **Update issues minimally.** Update checkboxes only when closing an issue (one
-   bulk update). Exception: if stopping mid-issue due to context limit, update to
-   show completed checkpoints for resumption. Progress visibility during execution
-   comes from git commits, not issue updates.
+8. **Update issue checkboxes only when closing.** Do one bulk update (mark all
+   checkboxes complete) right before closing. Exception: if stopping mid-issue due
+   to context limit, update to show completed checkpoints for resumption. Progress
+   visibility during execution comes from git commits, not issue updates.
 
 ## PROJECT CONTEXT
 
@@ -159,10 +167,14 @@ Wave 3 (deps: 104):  #105, #106 (parallel - different files)
 Based on the dependency graph, execute in this order:
 
 Example:
-1. Implement #103 (no dependencies, blocks #104)
-2. Implement #104 (depends on #103, blocks #105 and #106)
-3. Implement #105 and #106 sequentially (both depend on #104, but you're a single agent)
-4. Verification: run tests, lint, close issues
+1. Implement #103 → verify all checkpoints/criteria → close #103
+2. Implement #104 → verify all checkpoints/criteria → close #104
+3. Implement #105 → verify all checkpoints/criteria → close #105
+4. Implement #106 → verify all checkpoints/criteria → close #106
+5. Final verification: run full test suite, verify all issues closed
+
+**Critical:** Close each issue immediately after completing it (all checkpoints done,
+all acceptance criteria met, tests passing). Do NOT wait until the end to close issues.
 
 **Parallelization note:** You are a single agent executing sequentially. The orchestrator
 may spawn additional agents for other parents or other execution waves in parallel.
@@ -220,7 +232,11 @@ Each sub-issue has 2-5 checkpoints. Work through them in order.
 **After completing each checkpoint:**
 1. Verify code compiles/runs
 2. Run your new tests
-3. If checkpoint is the last one for this sub-issue, commit
+3. If checkpoint is the last one for this sub-issue:
+   a. Commit the code
+   b. Verify ALL acceptance criteria are met
+   c. Mark all checkboxes complete
+   d. Close the issue with `gh issue close <number>`
 
 **If context grows large (>80% full) before completing the sub-issue:**
 1. Complete the current checkpoint
@@ -234,17 +250,33 @@ Each sub-issue has 2-5 checkpoints. Work through them in order.
 
 ## ISSUE PROGRESS TRACKING
 
-**Update checkboxes only when closing the issue** (one API call per issue):
+**Before closing an issue, verify completion:**
+
+1. **All implementation checkpoints are complete** - Review the issue body and confirm every checkpoint is done
+2. **All acceptance criteria are met** - Verify each criterion in the issue:
+   - Run the tests you wrote (they must pass)
+   - Verify the behavior matches the requirements
+   - Check that edge cases are handled
+3. **Code is committed** - All work is in git with proper commit message
+4. **No errors or warnings** - Your tests pass, code compiles/lints clean
+
+**Only after verification, close the issue:**
 
 ```bash
-# Before closing, mark all work as complete
+# 1. Mark all checkboxes complete
 BODY=$(gh issue view <issue-number> --json body -q .body)
 BODY=$(echo "$BODY" | sed 's/- \[ \] /- [x] /g')
 gh issue edit <issue-number> --body "$BODY"
 
-# Then close
-gh issue close <issue-number> -c "All checkpoints and acceptance criteria complete."
+# 2. Close with verification statement
+gh issue close <issue-number> -c "All checkpoints and acceptance criteria complete. Tests passing."
 ```
+
+**NEVER close an issue if:**
+- Any checkpoint is incomplete
+- Any acceptance criterion is not met
+- Tests are failing
+- Code is not committed
 
 **Exception: If stopping mid-issue due to context limit:**
 Update the issue to show which checkpoints are done before stopping:
@@ -398,11 +430,18 @@ After the agent reports completion:
    - Check that all commits are on the branch
    - Verify tests pass: `<TEST_COMMAND>`
    - Verify lint clean: `<LINT_COMMAND>`
-   - Verify all issues are closed on GitHub
+   - **Verify ALL sub-issues are closed on GitHub** (use `gh issue list --parent <PARENT_NUMBER>` to check)
 
-2. **Close parent issue:**
+2. **Close parent issue (ONLY if all sub-issues are closed):**
    ```bash
-   gh issue close <PARENT_NUMBER> -c "All <N> sub-issues complete. <summary>"
+   # First verify all sub-issues are closed
+   OPEN_SUBS=$(gh issue list --parent <PARENT_NUMBER> --state open --json number --jq 'length')
+   if [ "$OPEN_SUBS" -eq 0 ]; then
+     gh issue close <PARENT_NUMBER> -c "All <N> sub-issues complete. <summary>"
+   else
+     echo "ERROR: Cannot close parent - $OPEN_SUBS sub-issues still open"
+     gh issue list --parent <PARENT_NUMBER> --state open
+   fi
    ```
 
 3. **Update task tracking:**
